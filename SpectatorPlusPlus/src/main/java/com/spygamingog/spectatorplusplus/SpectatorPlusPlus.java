@@ -4,6 +4,7 @@ import com.spygamingog.spectatorplusplus.commands.CommandManager;
 import com.spygamingog.spectatorplusplus.data.ConfigManager;
 import com.spygamingog.spectatorplusplus.data.WorldSetManager;
 import com.spygamingog.spectatorplusplus.listeners.*;
+import com.spygamingog.spectatorplusplus.tasks.SpectatorInventorySync;
 import com.spygamingog.spectatorplusplus.utils.SpectatorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -44,6 +45,9 @@ public class SpectatorPlusPlus extends JavaPlugin {
         // Register listeners
         registerListeners();
         
+        // Start inventory sync task (every 2 ticks)
+        new SpectatorInventorySync(this).runTaskTimer(this, 0L, 2L);
+        
         getLogger().info("Spectator++ v" + getDescription().getVersion() + " has been enabled!");
         getLogger().info("Plugin by " + getDescription().getAuthors().toString());
     }
@@ -68,6 +72,9 @@ public class SpectatorPlusPlus extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new WorldListener(this), this);
         Bukkit.getPluginManager().registerEvents(new EntityListener(this), this);
         Bukkit.getPluginManager().registerEvents(new AdvancementListener(this), this);
+    
+        // Register the new ItemLockListener
+        Bukkit.getPluginManager().registerEvents(new ItemLockListener(this), this);
     }
     
     public static SpectatorPlusPlus getInstance() {
