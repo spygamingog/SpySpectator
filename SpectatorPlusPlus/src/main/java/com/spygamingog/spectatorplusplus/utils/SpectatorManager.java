@@ -21,6 +21,7 @@ public class SpectatorManager {
     private final VisibilityManager visibilityManager;
     private final Set<UUID> spectators;
     private final Map<UUID, UUID> spectatingTargets; // Spectator -> Target
+    private final Map<UUID, SpectatorFollowTask> followTasks;
     private final Map<UUID, Location> originalLocations;
     private final Map<UUID, GameMode> originalGameModes;
     private final Map<UUID, ItemStack[]> originalInventories;
@@ -33,6 +34,7 @@ public class SpectatorManager {
         this.visibilityManager = new VisibilityManager(this);
         this.spectators = new HashSet<>();
         this.spectatingTargets = new HashMap<>();
+        this.followTasks = new HashMap<>();
         this.originalLocations = new HashMap<>();
         this.originalGameModes = new HashMap<>();
         this.originalInventories = new HashMap<>();
@@ -59,17 +61,17 @@ public class SpectatorManager {
             player.setGameMode(GameMode.ADVENTURE);
             player.setAllowFlight(true);
             player.setFlying(true);
-            player.setFlySpeed(0.1f); // Normal flight speed like creative
+            player.setFlySpeed(0.1f);
             player.setWalkSpeed(0.2f);
-            player.setCollidable(false); // Pass through entities
+            player.setCollidable(false);
             player.setInvulnerable(true);
-            player.setSilent(true); // Silent footsteps
+            player.setSilent(true);
             
             // Add invisibility effect to hide from mobs
             player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 
                 Integer.MAX_VALUE, 0, false, false, false));
             
-            // Clear inventory and give spectator items
+            // Clear inventory and give locked spectator items
             player.getInventory().clear();
             giveSpectatorItems(player);
             
@@ -77,19 +79,17 @@ public class SpectatorManager {
             player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 
                 Integer.MAX_VALUE, 0, false, false, false));
             
-            // Update visibility using VisibilityManager
-            visibilityManager.updatePlayerVisibility(player);
-            visibilityManager.updateTablistForWorldSet(player);
-            visibilityManager.updateNameTagVisibility(player);
+            // FIX: Spectators should see normal players, but normal players shouldn't see spectators
+            updateSpectatorVisibilityForAll();
             
             player.sendMessage(ChatColor.translateAlternateColorCodes('&',
                 configManager.getMessage("enter-spectator")));
+            player.sendMessage(ChatColor.GRAY + "Use compass to select players to spectate");
             plugin.getLogger().info(player.getName() + " entered spectator mode");
             
         } catch (Exception e) {
             plugin.getLogger().severe("Error entering spectator mode for " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            // Try to cleanup on error
             if (isSpectator(player)) {
                 spectators.remove(player.getUniqueId());
             }
@@ -110,6 +110,12 @@ public class SpectatorManager {
             // Stop spectating if currently spectating someone
             if (isSpectating(player)) {
                 stopSpectating(player);
+            }
+            
+            // Cancel any follow task
+            if (followTasks.containsKey(playerId)) {
+                followTasks.get(playerId).cancel();
+                followTasks.remove(playerId);
             }
             
             // Restore original state
@@ -159,12 +165,8 @@ public class SpectatorManager {
                 }
             }
             
-            // Update visibility using VisibilityManager
-            visibilityManager.updatePlayerVisibility(player);
-            visibilityManager.updateNameTagVisibility(player);
-            
             // Update visibility for all players
-            visibilityManager.updateAllVisibility();
+            updateSpectatorVisibilityForAll();
             
             // Clean up
             originalLocations.remove(playerId);
@@ -179,7 +181,6 @@ public class SpectatorManager {
         } catch (Exception e) {
             plugin.getLogger().severe("Error leaving spectator mode for " + player.getName() + ": " + e.getMessage());
             e.printStackTrace();
-            // Force cleanup
             spectators.remove(player.getUniqueId());
             player.sendMessage(ChatColor.RED + "An error occurred while leaving spectator mode!");
         }
@@ -203,19 +204,33 @@ public class SpectatorManager {
         
         try {
             UUID spectatorId = spectator.getUniqueId();
+            
+            // Stop any existing spectating
+            if (isSpectating(spectator)) {
+                stopSpectating(spectator);
+            }
+            
             spectatingTargets.put(spectatorId, target.getUniqueId());
             
-            // Stop flying if spectator was flying
+            // Set to adventure mode for proper viewing
+            spectator.setGameMode(GameMode.ADVENTURE);
+            spectator.setAllowFlight(true);
             spectator.setFlying(false);
             
-            // Teleport to target's location (not eye location yet)
-            spectator.teleport(target.getLocation());
+            // Teleport to target's eye location for first-person view
+            Location targetLoc = target.getEyeLocation().clone();
+            spectator.teleport(targetLoc);
             
-            // Start follow task
-            new SpectatorFollowTask(plugin, spectator, target).runTaskTimer(plugin, 0L, 1L);
+            // Make spectator invisible to target
+            target.hidePlayer(plugin, spectator);
+            
+            // Start follow task with first-person view
+            SpectatorFollowTask followTask = new SpectatorFollowTask(plugin, spectator, target);
+            followTask.runTaskTimer(plugin, 0L, 1L);
+            followTasks.put(spectatorId, followTask);
             
             // Send message
-            spectator.sendMessage(ChatColor.GREEN + "Now spectating " + target.getName());
+            spectator.sendMessage(ChatColor.GREEN + "Now spectating " + target.getName() + " (first-person view)");
             spectator.sendMessage(ChatColor.GRAY + "Sneak to stop spectating");
             
         } catch (Exception e) {
@@ -229,6 +244,13 @@ public class SpectatorManager {
         UUID spectatorId = spectator.getUniqueId();
         if (spectatingTargets.containsKey(spectatorId)) {
             Player target = getSpectatingTarget(spectator);
+            
+            // Cancel follow task
+            if (followTasks.containsKey(spectatorId)) {
+                followTasks.get(spectatorId).cancel();
+                followTasks.remove(spectatorId);
+            }
+            
             spectatingTargets.remove(spectatorId);
             
             // Close any open inventory
@@ -236,8 +258,14 @@ public class SpectatorManager {
                 spectator.closeInventory();
             }
             
+            // Make spectator visible to target again
+            if (target != null && target.isOnline()) {
+                target.showPlayer(plugin, spectator);
+            }
+            
             // Re-enable flight
             spectator.setFlying(true);
+            spectator.setFlySpeed(0.1f);
             
             // Send message
             spectator.sendMessage(ChatColor.YELLOW + "Stopped spectating" + 
@@ -246,36 +274,74 @@ public class SpectatorManager {
     }
     
     private void giveSpectatorItems(Player player) {
-        // Compass for player selection
+        // Compass for player selection (locked in hotbar)
         ItemStack compass = new ItemStack(Material.COMPASS);
         ItemMeta compassMeta = compass.getItemMeta();
         if (compassMeta != null) {
             compassMeta.setDisplayName(ChatColor.GOLD + "Spectator Compass");
             compassMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Right-click to open player selector",
-                ChatColor.GRAY + "Select a player to spectate"
+                ChatColor.GRAY + "Select a player to spectate",
+                ChatColor.DARK_GRAY + "Locked in hotbar"
             ));
+            // Make item unbreakable and add custom tag
+            compassMeta.setUnbreakable(true);
             compass.setItemMeta(compassMeta);
         }
         
-        // Leave spectator item
+        // Leave spectator item (locked in hotbar)
         ItemStack leaveItem = new ItemStack(Material.RED_BED);
         ItemMeta leaveMeta = leaveItem.getItemMeta();
         if (leaveMeta != null) {
             leaveMeta.setDisplayName(ChatColor.RED + "Leave Spectator Mode");
             leaveMeta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Right-click to leave spectator mode",
-                ChatColor.GRAY + "You will be teleported to lobby"
+                ChatColor.GRAY + "You will be teleported to lobby",
+                ChatColor.DARK_GRAY + "Locked in hotbar"
             ));
+            leaveMeta.setUnbreakable(true);
             leaveItem.setItemMeta(leaveMeta);
         }
         
+        // Set items in fixed positions (can't be moved)
         player.getInventory().setItem(0, compass);
         player.getInventory().setItem(8, leaveItem);
     }
     
-    public void updateVisibilityForAll() {
-        visibilityManager.updateAllVisibility();
+    public void updateSpectatorVisibilityForAll() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            updateSpectatorVisibility(player);
+        }
+    }
+    
+    private void updateSpectatorVisibility(Player player) {
+        if (isSpectator(player)) {
+            // Spectator: can see everyone, but others can't see spectator
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (other.equals(player)) continue;
+                
+                // Spectator can see everyone
+                player.showPlayer(plugin, other);
+                
+                // Others can't see spectator unless they're also spectator/admin
+                if (!isSpectator(other) && !other.hasPermission("spectatorplusplus.admin")) {
+                    other.hidePlayer(plugin, player);
+                } else {
+                    other.showPlayer(plugin, player);
+                }
+            }
+        } else {
+            // Non-spectator: can't see spectators unless admin
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (other.equals(player)) continue;
+                
+                if (isSpectator(other) && !player.hasPermission("spectatorplusplus.admin")) {
+                    player.hidePlayer(plugin, other);
+                } else {
+                    player.showPlayer(plugin, other);
+                }
+            }
+        }
     }
     
     public boolean isSpectator(Player player) {
