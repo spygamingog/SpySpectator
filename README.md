@@ -79,12 +79,12 @@
 
 ### 📋 Commands
 
-Command	Description	Permission	Aliases
-/spectate	Toggle spectator mode	spectatorplusplus.use	/spec, /sp
-/spectate <player>	Spectate specific player	spectatorplusplus.spectate.others	
-/spectator lobby set	Set lobby location	spectatorplusplus.admin	
-/spectator lobby remove	Remove lobby location	spectatorplusplus.admin	
-/spectator reload	Reload configuration	spectatorplusplus.admin	
+  Command	    Description	  Permission	  Aliases
+- /spectate	Toggle spectator mode	spectatorplusplus.use	/spec, /sp
+- /spectate <player>	Spectate specific player	spectatorplusplus.spectate.others	
+- /spectator lobby set	Set lobby location	spectatorplusplus.admin	
+- /spectator lobby remove	Remove lobby location	spectatorplusplus.admin	
+- /spectator reload	Reload configuration	spectatorplusplus.admin	
 
 ### 🔐 Permissions
 
