@@ -96,6 +96,28 @@
 | `spectatorplusplus.spectate.others` | Spectate other players | `op` |
 | `spectatorplusplus.bypass` | See spectators as non-admin | `op` |
 
+## 📋 Commands
+
+**Player Commands:**
+- `/spectate` - Toggle spectator mode
+  - Permission: `spectatorplusplus.use`
+  - Aliases: `/spec`, `/sp`
+- `/spectate <player>` - Spectate specific player
+  - Permission: `spectatorplusplus.spectate.others`
+
+**Admin Commands:**
+- `/spectator lobby set` - Set lobby location
+- `/spectator lobby remove` - Remove lobby location  
+- `/spectator reload` - Reload configuration
+  - All require: `spectatorplusplus.admin`
+
+## 🔐 Permissions
+
+- `spectatorplusplus.use` - Use spectator mode *(Default: op)*
+- `spectatorplusplus.admin` - Admin commands *(Default: op)*
+- `spectatorplusplus.spectate.others` - Spectate other players *(Default: op)*
+- `spectatorplusplus.bypass` - See spectators as non-admin *(Default: op)*
+
 ### For Server Admins
 ```bash
 # Set spectator lobby location
