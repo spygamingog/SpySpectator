@@ -9,7 +9,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.InventoryView;
+import org.bukkit.event.inventory.InventoryType;
 
 public class InventoryListener implements Listener {
     private final SpectatorPlusPlus plugin;
@@ -27,6 +27,12 @@ public class InventoryListener implements Listener {
         Player player = (Player) event.getWhoClicked();
         
         if (spectatorManager.isSpectator(player)) {
+            // If spectating someone and viewing their inventory, block ALL clicks
+            if (spectatorManager.isSpectating(player)) {
+                event.setCancelled(true);
+                return;
+            }
+            
             // Allow clicking in player selector GUI
             String title = event.getView().getTitle();
             if (title.contains("Spectate Players")) {
@@ -36,7 +42,7 @@ public class InventoryListener implements Listener {
                     String playerName = event.getCurrentItem().getItemMeta().getDisplayName()
                         .replace("§a", "").replace("§2", "").replace("§e", "").replace("§6", "");
                     playerName = org.bukkit.ChatColor.stripColor(playerName);
-                    
+                        
                     org.bukkit.entity.Player target = plugin.getServer().getPlayerExact(playerName);
                     if (target != null && !spectatorManager.isSpectator(target)) {
                         event.setCancelled(true);
@@ -45,6 +51,17 @@ public class InventoryListener implements Listener {
                     }
                 }
                 return;
+            }
+            
+            // Prevent moving compass and bed items
+            if (event.getCurrentItem() != null && event.getCurrentItem().hasItemMeta()) {
+                org.bukkit.inventory.meta.ItemMeta meta = event.getCurrentItem().getItemMeta();
+                String displayName = meta.getDisplayName();
+                if (displayName.contains("Spectator Compass") || 
+                    displayName.contains("Leave Spectator Mode")) {
+                    event.setCancelled(true);
+                    return;
+                }
             }
             
             // Cancel all other inventory interactions for spectators
@@ -74,13 +91,12 @@ public class InventoryListener implements Listener {
         Player player = (Player) event.getPlayer();
         
         if (spectatorManager.isSpectator(player)) {
-            // If spectator is spectating someone, sync their inventory view
-            if (spectatorManager.isSpectating(player)) {
-                Player target = spectatorManager.getSpectatingTarget(player);
-                if (target != null && target.getOpenInventory() != null) {
-                    // Close current and open target's inventory
-                    player.closeInventory();
-                    player.openInventory(target.getInventory());
+            // Prevent spectators from opening inventories unless they're spectating
+            if (!spectatorManager.isSpectating(player)) {
+                // Allow only Ender Chest and Crafting table (for view only)
+                if (event.getInventory().getType() != InventoryType.ENDER_CHEST && 
+                    event.getInventory().getType() != InventoryType.WORKBENCH) {
+                    event.setCancelled(true);
                 }
             }
         }
@@ -88,21 +104,6 @@ public class InventoryListener implements Listener {
     
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player)) return;
-        
-        Player player = (Player) event.getPlayer();
-        
-        if (spectatorManager.isSpectator(player) && spectatorManager.isSpectating(player)) {
-            // If spectator closes inventory while spectating, reopen target's inventory
-            // after a short delay to maintain the spectating view
-            Player target = spectatorManager.getSpectatingTarget(player);
-            if (target != null && target.getOpenInventory() != null) {
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (player.isOnline() && spectatorManager.isSpectating(player)) {
-                        player.openInventory(target.getInventory());
-                    }
-                }, 1L);
-            }
-        }
+        // No infinite loop creation - removed problematic code
     }
 }

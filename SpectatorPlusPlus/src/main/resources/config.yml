@@ -19,6 +19,23 @@ spectator:
   chat-visible-to-spectators-only: true
   pass-through-entities: true
   normal-walking: true
+  can-see-normal-players: true  # NEW - Critical setting
+  lock-spectator-items: true    # NEW - Prevent moving compass/bed
+  
+# NEW: First-person spectating settings
+first-person-spectating:
+  enabled: true
+  sync-inventory: true
+  sync-health: false
+  sync-hunger: false
+  sync-experience: false
+  stop-on-sneak: true
+  
+# NEW: Inventory sync settings
+inventory-sync:
+  enabled: true
+  update-interval-ticks: 2
+  allow-interaction: false
   
 # World set detection
 world-sets:

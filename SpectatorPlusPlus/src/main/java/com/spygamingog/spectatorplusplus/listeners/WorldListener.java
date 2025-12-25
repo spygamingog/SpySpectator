@@ -21,7 +21,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.event.player.PlayerToggleFlightEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class WorldListener implements Listener {
     private final SpectatorPlusPlus plugin;
@@ -55,32 +55,26 @@ public class WorldListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        
-        if (spectatorManager.isSpectator(player)) {
-            // Allow right-clicking air with compass or bed
-            if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                if (player.getInventory().getItemInMainHand().getType() == Material.COMPASS || 
-                    player.getInventory().getItemInMainHand().getType() == Material.RED_BED) {
-                    return; // Allow compass/bed interaction
-                }
-            }
-            
-            // Block all other interactions
-            if (event.getClickedBlock() != null) {
-                Material blockType = event.getClickedBlock().getType();
-                
-                // Allow opening doors/gates if they're already open (players can walk through)
-                if (isOpenableBlock(blockType)) {
-                    // Check if block is already open
-                    if (isBlockOpen(event.getClickedBlock())) {
-                        event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
-                        return;
-                    }
-                }
-                
-                event.setCancelled(true);
-            }
+    
+        if (!spectatorManager.isSpectator(player)) return;
+    
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || !item.hasItemMeta()) {
+            event.setCancelled(true);
+            return;
         }
+    
+        String displayName = item.getItemMeta().getDisplayName();
+    
+        // Allow compass and bed interactions
+        if ((item.getType() == Material.COMPASS && displayName.contains("Spectator Compass")) ||
+            (item.getType() == Material.RED_BED && displayName.contains("Leave Spectator Mode"))) {
+            // These are handled by PlayerListener
+            return;
+        }
+    
+    // Block all other interactions
+        event.setCancelled(true);
     }
     
     private boolean isOpenableBlock(Material material) {

@@ -66,22 +66,26 @@ public class VisibilityManager {
         if (spectatorManager == null) {
             return;
         }
-        
+    
         if (spectatorManager.isSpectator(player)) {
-            // Add player to spectator team
+        // Add player to spectator team
             Team spectatorTeam = teams.get(TEAM_SPECTATOR);
             if (spectatorTeam != null) {
                 spectatorTeam.addEntry(player.getName());
             }
-            
-            // Hide from non-spectators
+        
+            // FIXED: Spectator should see everyone
             for (Player other : Bukkit.getOnlinePlayers()) {
                 if (other.equals(player)) continue;
-                
-                if (spectatorManager.isSpectator(other) || other.hasPermission("spectatorplusplus.admin")) {
-                    other.showPlayer(plugin, player);
-                } else {
+            
+                // Spectator can see everyone
+                player.showPlayer(plugin, other);
+            
+                // Others can't see spectator unless they're also spectator/admin
+                if (!spectatorManager.isSpectator(other) && !other.hasPermission("spectatorplusplus.admin")) {
                     other.hidePlayer(plugin, player);
+                } else {
+                    other.showPlayer(plugin, player);
                 }
             }
         } else {
@@ -91,19 +95,14 @@ public class VisibilityManager {
                 spectatorTeam.removeEntry(player.getName());
             }
             
-            // Show player to everyone
+            // Non-spectator: can't see spectators unless admin
             for (Player other : Bukkit.getOnlinePlayers()) {
-                if (!other.equals(player)) {
-                    other.showPlayer(plugin, player);
-                }
-            }
-            
-            // Hide spectators from this player if they don't have permission
-            if (!player.hasPermission("spectatorplusplus.admin")) {
-                for (Player spec : spectatorManager.getSpectators()) {
-                    if (!spec.equals(player)) {
-                        player.hidePlayer(plugin, spec);
-                    }
+                if (other.equals(player)) continue;
+                
+                if (spectatorManager.isSpectator(other) && !player.hasPermission("spectatorplusplus.admin")) {
+                    player.hidePlayer(plugin, other);
+                } else {
+                    player.showPlayer(plugin, other);
                 }
             }
         }
