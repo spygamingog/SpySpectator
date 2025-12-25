@@ -593,20 +593,3 @@ If you find this plugin useful, please:
   <sub>If you encounter any issues, please report them on GitHub Issues.</sub>
 </p>
 ```
-
-## 📋 How to Use This README:
-
-1. **Copy the entire code above**
-2. **Paste into your README.md file**
-3. **Update these parts:**
-   - Replace placeholder image link with actual screenshots
-   - Update version numbers when you release updates
-   - Add your actual contact info if different
-   - Update changelog with each release
-
-4. **Add screenshots** (recommended):
-   - Press F2 in Minecraft to take screenshots
-   - Upload to `screenshots/` folder in your repo
-   - Update image links in README
-
-This README is **complete and professional** - it has everything users, developers, and server admins need!
