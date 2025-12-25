@@ -1,6 +1,4 @@
-Here's the complete README.md code:
 
-```markdown
 <!--
 Spectator++ - Advanced Spectator Mode Plugin
 Repository: https://github.com/SpyGamingOG/SpectatorPlusPlus
