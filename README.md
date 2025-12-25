@@ -77,6 +77,23 @@
 5. Press **SHIFT** to stop spectating
 6. Right-click the **red bed** to leave spectator mode
 
+### 📋 Commands
+
+Command	Description	Permission	Aliases
+/spectate	Toggle spectator mode	spectatorplusplus.use	/spec, /sp
+/spectate <player>	Spectate specific player	spectatorplusplus.spectate.others	
+/spectator lobby set	Set lobby location	spectatorplusplus.admin	
+/spectator lobby remove	Remove lobby location	spectatorplusplus.admin	
+/spectator reload	Reload configuration	spectatorplusplus.admin	
+
+### 🔐 Permissions
+
+Permission	Description	Default
+spectatorplusplus.use	Use spectator mode	op
+spectatorplusplus.admin	Admin commands	op
+spectatorplusplus.spectate.others	Spectate other players	op
+spectatorplusplus.bypass	See spectators as non-admin	op
+
 ### For Server Admins
 ```bash
 # Set spectator lobby location
@@ -87,17 +104,3 @@
 
 # Reload configuration
 /spectator reload
-```
-###📋 Commands
-Command	Description	Permission	Aliases
-/spectate	Toggle spectator mode	spectatorplusplus.use	/spec, /sp
-/spectate <player>	Spectate specific player	spectatorplusplus.spectate.others	
-/spectator lobby set	Set lobby location	spectatorplusplus.admin	
-/spectator lobby remove	Remove lobby location	spectatorplusplus.admin	
-/spectator reload	Reload configuration	spectatorplusplus.admin	
-###🔐 Permissions
-Permission	Description	Default
-spectatorplusplus.use	Use spectator mode	op
-spectatorplusplus.admin	Admin commands	op
-spectatorplusplus.spectate.others	Spectate other players	op
-spectatorplusplus.bypass	See spectators as non-admin	op
