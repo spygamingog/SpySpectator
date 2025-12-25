@@ -142,23 +142,6 @@
 - [📋 View Open Issues](https://github.com/SpyGamingOG/SpectatorPlusPlus/issues)
 - [💬 Join Discussions](https://github.com/SpyGamingOG/SpectatorPlusPlus/discussions)
 
-## 📝 Changelog
-
-<details>
-<summary><strong>[1.0.0] - 2024-12-25</strong></summary>
-<br>
-#### Added
-- Initial release of Spectator++
-- Advanced spectator mode with invisibility
-- World set detection and filtering
-- Body spectating with screen sync
-- Spectator compass GUI
-- Smart chat system
-- Admin commands and permissions
-- Configuration file support
-- MultiVerse integration
-</details>
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
