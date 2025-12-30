@@ -68,6 +68,11 @@ public class WorldSetManager {
     }
     
     public Set<String> getWorldSet(String worldName) {
+        if (worldName == null) {
+            Set<String> emptySet = new HashSet<>();
+            emptySet.add("");
+            return emptySet;
+        }
         if (configManager.isSpectatorLobbyWorld(worldName)) {
             Set<String> allWorlds = new HashSet<>();
             for (World world : Bukkit.getWorlds()) {

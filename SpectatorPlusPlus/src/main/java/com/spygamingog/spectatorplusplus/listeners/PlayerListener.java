@@ -6,12 +6,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class PlayerListener implements Listener {
     private final SpectatorPlusPlus plugin;
@@ -22,109 +22,148 @@ public class PlayerListener implements Listener {
         this.spectatorManager = plugin.getSpectatorManager();
     }
     
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         
-        if (!spectatorManager.isSpectator(player)) return;
+        if (!spectatorManager.isSpectator(player)) {
+            return;
+        }
         
         ItemStack item = event.getItem();
-        if (item == null || !item.hasItemMeta()) return;
-        
-        String displayName = item.getItemMeta().getDisplayName();
-        
-        if (item.getType() == Material.COMPASS && displayName.contains("Spectator Compass")) {
-            event.setCancelled(true);
-            
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (player.isOnline() && spectatorManager.isSpectator(player)) {
-                    try {
-                        if (player.getOpenInventory() != null) {
-                            player.closeInventory();
-                        }
-                        
-                        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                            spectatorManager.getPlayerSelectorGUI().open(player);
-                        }, 2L);
-                    } catch (Exception e) {
-                        player.sendMessage(ChatColor.RED + "Failed to open player selector!");
-                        plugin.getLogger().severe("Error opening GUI: " + e.getMessage());
-                    }
-                }
-            });
+        if (item == null) {
             return;
         }
         
-        if (item.getType() == Material.RED_BED && displayName.contains("Leave Spectator Mode")) {
-            event.setCancelled(true);
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (player.isOnline()) {
-                    spectatorManager.leaveSpectator(player);
-                }
-            });
-            return;
+        if (item.getType() == Material.COMPASS) {
+            handleCompassClick(player, item, event);
+        } else if (item.getType() == Material.ENDER_EYE) {
+            handleEnderEyeClick(player, item, event);
+        } else if (item.getType() == Material.PAPER) {
+            handlePaperClick(player, item, event);
+        } else if (item.getType() == Material.RED_BED) {
+            handleBedClick(player, item, event);
         }
-        
-        if (item.getType() == Material.ENDER_EYE && displayName.contains("Toggle Spectator Visibility")) {
-            event.setCancelled(true);
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (player.isOnline()) {
-                    spectatorManager.toggleSpectatorVisibility(player);
-                }
-            });
-            return;
-        }
-        
-        if (item.getType() == Material.PAPER && displayName.contains("Toggle Spectator Chat")) {
-            event.setCancelled(true);
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (player.isOnline()) {
-                    spectatorManager.toggleSpectatorChat(player);
-                }
-            });
-            return;
-        }
-        
-        event.setCancelled(true);
     }
     
-    @EventHandler
-    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-        Player player = event.getPlayer();
-        
-        if (!spectatorManager.isSpectator(player)) return;
-        
-        if (event.getRightClicked() instanceof Player) {
-            Player target = (Player) event.getRightClicked();
-            
-            if (!player.equals(target) && !spectatorManager.isSpectator(target)) {
-                event.setCancelled(true);
+    private void handleCompassClick(Player player, ItemStack item, PlayerInteractEvent event) {
+        event.setCancelled(true);
+
+        if (!item.hasItemMeta()) {
+            player.sendMessage("DEBUG: Item has no meta");
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        if (!meta.hasDisplayName()) {
+            player.sendMessage("DEBUG: Item has no display name");
+            return;
+        }
+
+        String displayName = meta.getDisplayName();
+        String strippedName = org.bukkit.ChatColor.stripColor(displayName);
+
+        player.sendMessage("DEBUG: Display name: " + displayName);
+        player.sendMessage("DEBUG: Stripped name: " + strippedName);
+
+        if (strippedName.equals("Spectator Compass") || 
+            strippedName.contains("Spectator Compass")) {
                 
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    if (player.isOnline() && target.isOnline()) {
-                        if (!spectatorManager.isSpectator(player)) {
-                            spectatorManager.enterSpectator(player);
-                        }
-                        
-                        spectatorManager.spectatePlayer(player, target);
-                        player.sendMessage(ChatColor.GREEN + "Now spectating " + target.getName() + " (first-person view)");
+            player.sendMessage("DEBUG: Opening GUI...");
+            plugin.getSpectatorManager().getSpectatorCompassGUI().open(player);
+        } else {
+            player.sendMessage("DEBUG: Not a spectator compass");
+        }
+    }
+    
+    private void handleEnderEyeClick(Player player, ItemStack item, PlayerInteractEvent event) {
+        event.setCancelled(true);
+        
+        if (!item.hasItemMeta()) return;
+        
+        ItemMeta meta = item.getItemMeta();
+        if (!meta.hasDisplayName()) return;
+        
+        String displayName = meta.getDisplayName();
+        if (!displayName.contains("Toggle Spectator Visibility")) return;
+        
+        spectatorManager.toggleSpectatorVisibility(player);
+    }
+    private void handlePaperClick(Player player, ItemStack item, PlayerInteractEvent event) {
+        event.setCancelled(true);
+
+        if (!item.hasItemMeta()) return;
+
+        ItemMeta meta = item.getItemMeta();
+        if (!meta.hasDisplayName()) return;
+
+        String displayName = org.bukkit.ChatColor.stripColor(meta.getDisplayName());
+
+        if (displayName.equals("Toggle Spectator Chat") || 
+            displayName.contains("Toggle Spectator Chat")) {
+                
+            spectatorManager.toggleSpectatorChat(player);
+        }
+    }
+    private void handleBedClick(Player player, ItemStack item, PlayerInteractEvent event) {
+        event.setCancelled(true);
+        
+        if (!item.hasItemMeta()) return;
+        
+        ItemMeta meta = item.getItemMeta();
+        if (!meta.hasDisplayName()) return;
+        
+        String displayName = meta.getDisplayName();
+        if (!displayName.contains("Leave Spectator Mode")) return;
+        
+        spectatorManager.leaveSpectator(player);
+    }
+    @EventHandler
+    public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+
+        if (spectatorManager.isSpectator(player) && spectatorManager.isSpectating(player)) {
+            if (event.isSneaking()) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {   
+                    if (player.isOnline()) {
+                        spectatorManager.stopSpectating(player);
+                        player.sendMessage("§eStopped spectating. You're still in spectator mode.");
                     }
                 });
             }
         }
     }
-    
     @EventHandler
-    public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
-        Player player = event.getPlayer();
-        
-        if (event.isSneaking() && spectatorManager.isSpectating(player)) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (player.isOnline()) {
-                    spectatorManager.stopSpectating(player);
-                    player.sendMessage(ChatColor.YELLOW + "Stopped spectating - still in spectator mode");
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+
+        Player player = (Player) event.getWhoClicked();
+
+        if (!spectatorManager.isSpectator(player)) return;
+
+        String title = event.getView().getTitle();
+
+        if (title.contains("Spectate Players")) {
+            event.setCancelled(true);
+
+            if (event.getCurrentItem() != null && 
+                event.getCurrentItem().getType() == Material.PLAYER_HEAD) {
+                    
+                ItemMeta meta = event.getCurrentItem().getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    String playerName = meta.getDisplayName().replace("§a", "").replace("§2", "").replace("§e", "");
+                    playerName = org.bukkit.ChatColor.stripColor(playerName);   
+
+                    Player target = plugin.getServer().getPlayerExact(playerName);
+
+                    if (target != null && !spectatorManager.isSpectator(target)) {  
+                        player.closeInventory();
+                        spectatorManager.spectatePlayer(player, target);
+                    }
                 }
-            });
+            }
+        } else if (event.getClickedInventory() == player.getInventory()) {
+            event.setCancelled(true);
         }
     }
 }

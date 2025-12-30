@@ -7,9 +7,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class SpectateCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.List;
+
+public class SpectateCommand implements CommandExecutor, TabCompleter {
     private final SpectatorPlusPlus plugin;
     private final SpectatorManager spectatorManager;
     
@@ -67,5 +71,23 @@ public class SpectateCommand implements CommandExecutor {
         }
         
         return false;
+    }
+    
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        
+        if (args.length == 1 && sender instanceof Player) {
+            Player player = (Player) sender;
+            if (player.hasPermission("spectatorplusplus.spectate.others")) {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (!spectatorManager.isSpectator(p) && p.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
+                        completions.add(p.getName());
+                    }
+                }
+            }
+        }
+        
+        return completions;
     }
 }

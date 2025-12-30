@@ -1,11 +1,12 @@
-# Spectator++ Configuration v1.0.1
+# Spectator++ Configuration v1.0.2
+# Advanced spectator mode plugin for Minecraft servers
 # Plugin by SpyGamingOG
 
 # -------------------------------------------------------------------
 # SPECTATOR LOBBY SETTINGS
 # -------------------------------------------------------------------
 spectator-lobby:
-  world: "spectator_lobby"           # Name of the spectator lobby world
+  world: "world"           # Name of the spectator lobby world
   can-see-all-worlds: true           # Players in this world can see all worlds
   show-all-players-in-tab: true      # Show all players in tablist
   teleport-to-on-leave: true         # Teleport to this world when leaving spectator mode
@@ -14,7 +15,7 @@ spectator-lobby:
 # DEFAULT LOBBY LOCATION (For /spectator lobby set)
 # -------------------------------------------------------------------
 lobby:
-  world: spectator_lobby             # World name for lobby
+  world: world             # World name for lobby
   x: 0.5                             # X coordinate
   y: 64.0                            # Y coordinate
   z: 0.5                             # Z coordinate
@@ -47,6 +48,10 @@ spectator:
   # Chat settings
   chat-visible-to-spectators-only: true  # Spectator chat only visible to spectators
   
+  # Effects settings
+  give-night-vision: true            # Give night vision effect
+  give-invisibility: true            # Give invisibility effect
+  
 # -------------------------------------------------------------------
 # FIRST-PERSON SPECTATING SETTINGS
 # -------------------------------------------------------------------
@@ -73,7 +78,7 @@ world-sets:
 # COMPASS GUI SETTINGS
 # -------------------------------------------------------------------
 compass-gui:
-  title: "&6Spectate Players"        # GUI title
+  title: "&6&lSpectate Players"      # GUI title (with bold formatting)
   rows: 6                            # Number of rows (max 6 = 54 slots)
   show-spectators: false             # Show other spectators in GUI
   show-health: true                  # Show player health
@@ -81,13 +86,40 @@ compass-gui:
   show-world: true                   # Show player world
   
 # -------------------------------------------------------------------
-# HOTBAR ITEM SLOTS
+# HOTBAR ITEM SETTINGS
 # -------------------------------------------------------------------
 hotbar-items:
-  compass-slot: 0                    # Slot 0 (first slot)
-  visibility-toggle-slot: 2          # Slot 2
-  chat-toggle-slot: 4                # Slot 4
-  leave-slot: 8                      # Slot 8 (last slot)
+  compass-slot: 0                    # Slot 0 (first slot) - Spectator Compass
+  visibility-toggle-slot: 2          # Slot 2 - Toggle Spectator Visibility
+  chat-toggle-slot: 4                # Slot 4 - Toggle Spectator Chat
+  leave-slot: 8                      # Slot 8 (last slot) - Leave Spectator Mode
+  
+# -------------------------------------------------------------------
+# SPECTATOR ITEM NAMES & LORE
+# -------------------------------------------------------------------
+spectator-items:
+  compass:
+    name: "&6Spectator Compass"      # Gold colored
+    lore:
+      - "&7Right-click to select players to spectate"
+      - "&8Locked item"
+  visibility-toggle:
+    name: "&dToggle Spectator Visibility"  # Light Purple colored
+    lore:
+      - "&7Right-click to show/hide other spectators"
+      - "&7Current: &aVisible"
+      - "&8Locked item"
+  chat-toggle:
+    name: "&bToggle Spectator Chat"  # Aqua colored
+    lore:
+      - "&7Right-click to enable/disable spectator chat"
+      - "&7Current: &aEnabled"
+      - "&8Locked item"
+  leave-spectator:
+    name: "&cLeave Spectator Mode"   # Red colored
+    lore:
+      - "&7Right-click to leave spectator mode"
+      - "&8Locked item"
   
 # -------------------------------------------------------------------
 # MESSAGES
@@ -112,6 +144,10 @@ messages:
   cannot-spectate-self: "&cYou cannot spectate yourself!"
   cannot-spectate-spectator: "&cYou cannot spectate another spectator!"
   
+  # GUI messages
+  no-players-available: "&cNo players available to spectate!"
+  selecting-player: "&aSelecting player to spectate..."
+  
   # Item messages
   item-locked: "&cThis item is locked and cannot be moved!"
   item-cannot-place: "&cYou cannot place spectator items!"
@@ -122,13 +158,17 @@ messages:
   chat-enabled: "&aSpectator chat enabled"
   chat-disabled: "&eSpectator chat disabled"
   
+  # Flight messages
+  flight-enabled: "&aFlight enabled"
+  flight-disabled: "&eFlight disabled - double jump to fly again"
+  
 # -------------------------------------------------------------------
 # MULTIVERSE INTEGRATION
 # -------------------------------------------------------------------
 multiverse:
-  enabled: true                      # Enable Multiverse integration
-  use-mv-teleport: true              # Use Multiverse teleport methods
-  respect-mv-inventories: true       # Respect Multiverse-Inventories
+  enabled: true                     # Enable Multiverse integration (disabled by default)
+  use-mv-teleport: true             # Use Multiverse teleport methods
+  respect-mv-inventories: true      # Respect Multiverse-Inventories
   
 # -------------------------------------------------------------------
 # DEBUG SETTINGS
@@ -137,3 +177,11 @@ debug:
   enabled: false                     # Enable debug messages in console
   log-spectator-events: false        # Log spectator enter/leave events
   log-spectating-events: false       # Log spectating start/stop events
+  
+# -------------------------------------------------------------------
+# PERFORMANCE SETTINGS
+# -------------------------------------------------------------------
+performance:
+  inventory-sync-interval: 2         # Ticks between inventory sync updates
+  visibility-update-delay: 5         # Ticks delay for visibility updates
+  gui-update-interval: 20            # Ticks between GUI updates (1 second)

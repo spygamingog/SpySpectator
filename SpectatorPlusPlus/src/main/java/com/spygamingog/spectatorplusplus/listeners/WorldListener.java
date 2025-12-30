@@ -259,7 +259,7 @@ public class WorldListener implements Listener {
                 if (player.getOpenInventory() != null && 
                     player.getOpenInventory().getTitle().contains("Spectate Players")) {
                     player.closeInventory();
-                    spectatorManager.getPlayerSelectorGUI().open(player);
+                    spectatorManager.getSpectatorCompassGUI().open(player);
                 }
             }
         }, 5L);

@@ -14,6 +14,8 @@ public class CommandManager {
     
     public void registerCommands() {
         registerCommand("spectate", new SpectateCommand(plugin));
+        registerCommand("spectatoradmin", new SpectatorAdminCommand(plugin));
+        registerCommand("spectatorgui", new OpenGUICommand(plugin));       
         
         PluginCommand spectatorCommand = plugin.getCommand("spectator");
         if (spectatorCommand != null) {
@@ -27,6 +29,9 @@ public class CommandManager {
         PluginCommand command = plugin.getCommand(name);
         if (command != null) {
             command.setExecutor(executor);
+            if (executor instanceof TabCompleter) {
+                command.setTabCompleter((TabCompleter) executor);
+            }
         }
     }
 }

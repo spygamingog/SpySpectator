@@ -85,4 +85,8 @@ public class FlightListener implements Listener {
         lastJumpTime.remove(playerId);
         isFlying.remove(playerId);
     }
+    public void cleanup() {
+        lastJumpTime.clear();
+        isFlying.clear();
+    }
 }

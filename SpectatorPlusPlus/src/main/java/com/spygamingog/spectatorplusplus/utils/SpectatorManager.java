@@ -3,7 +3,7 @@ package com.spygamingog.spectatorplusplus.utils;
 import com.spygamingog.spectatorplusplus.SpectatorPlusPlus;
 import com.spygamingog.spectatorplusplus.data.ConfigManager;
 import com.spygamingog.spectatorplusplus.data.WorldSetManager;
-import com.spygamingog.spectatorplusplus.gui.PlayerSelectorGUI;
+import com.spygamingog.spectatorplusplus.gui.SpectatorCompassGUI;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -58,22 +58,26 @@ public class SpectatorManager {
             originalArmor.put(playerId, player.getInventory().getArmorContents().clone());
             
             player.setGameMode(GameMode.ADVENTURE);
-            player.setAllowFlight(true);
-            player.setFlying(true);
-            player.setFlySpeed(0.1f);
-            player.setWalkSpeed(0.2f);
-            player.setCollidable(false);
+            player.setAllowFlight(configManager.canFly());
+            player.setFlying(configManager.canFly());
+            player.setFlySpeed(configManager.getFlySpeed());
+            player.setWalkSpeed(configManager.getWalkSpeed());
+            player.setCollidable(!configManager.passThroughEntities());
             player.setInvulnerable(true);
             player.setSilent(true);
-            
-            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 
-                Integer.MAX_VALUE, 0, false, false, false));
+        
+            if (configManager.giveInvisibility()) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 
+                    Integer.MAX_VALUE, 0, false, false, false));
+            }
             
             player.getInventory().clear();
             giveSpectatorItems(player);
             
-            player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 
-                Integer.MAX_VALUE, 0, false, false, false));
+            if (configManager.giveNightVision()) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 
+                    Integer.MAX_VALUE, 0, false, false, false));
+            }
             
             visibilityManager.updatePlayerVisibility(player);
             
@@ -165,6 +169,10 @@ public class SpectatorManager {
     }
     
     public void spectatePlayer(Player spectator, Player target) {
+        if (spectator == null || target == null) {
+            if (spectator != null) spectator.sendMessage(ChatColor.RED + "Invalid target!");
+            return;
+        }
         if (spectator.equals(target)) {
             spectator.sendMessage(ChatColor.RED + "You cannot spectate yourself!");
             return;
@@ -178,18 +186,31 @@ public class SpectatorManager {
         try {
             spectatingTargets.put(spectator.getUniqueId(), target.getUniqueId());
             
+            Location previousLocation = spectator.getLocation().clone();
+            originalLocations.put(spectator.getUniqueId(), previousLocation);
+            
             spectator.setGameMode(GameMode.SPECTATOR);
             
-            spectator.setSpectatorTarget(target);
-            
-            spectator.teleport(target.getLocation());
-            
-            target.hidePlayer(plugin, spectator);
-            
-            spectator.sendMessage(ChatColor.GREEN + "Now spectating " + target.getName() + " (first-person view)");
-            spectator.sendMessage(ChatColor.GRAY + "Sneak to stop spectating");
-            
-            plugin.getLogger().info(spectator.getName() + " is now spectating " + target.getName());
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (spectator.isOnline() && target.isOnline() && isSpectating(spectator)) {
+                    try {
+                        spectator.setSpectatorTarget(target);
+                        
+                        spectator.teleport(target.getLocation());
+                        
+                        target.hidePlayer(plugin, spectator);
+                        
+                        spectator.sendMessage(ChatColor.GREEN + "Now spectating " + target.getName() + " (first-person view)");
+                        spectator.sendMessage(ChatColor.GRAY + "Sneak to stop spectating");
+                        
+                        plugin.getLogger().info(spectator.getName() + " is now spectating " + target.getName());
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Error setting spectator target: " + e.getMessage());
+                        stopSpectating(spectator);
+                        spectator.sendMessage(ChatColor.RED + "Failed to spectate player!");
+                    }
+                }
+            }, 2L);
             
         } catch (Exception e) {
             plugin.getLogger().severe("Error spectating player: " + e.getMessage());
@@ -200,31 +221,28 @@ public class SpectatorManager {
     
     public void stopSpectating(Player spectator) {
         UUID spectatorId = spectator.getUniqueId();
-        
+
         if (spectatingTargets.containsKey(spectatorId)) {
             Player target = getSpectatingTarget(spectator);
-            
+
             spectatingTargets.remove(spectatorId);
-            
+
             if (target != null && target.isOnline()) {
                 target.showPlayer(plugin, spectator);
             }
-            
+
             if (spectator.getGameMode() == GameMode.SPECTATOR) {
                 try {
                     spectator.setSpectatorTarget(null);
                 } catch (IllegalArgumentException e) {
-                    spectator.setGameMode(GameMode.ADVENTURE);
                 }
             }
-            
-            if (spectator.getGameMode() != GameMode.ADVENTURE) {
-                spectator.setGameMode(GameMode.ADVENTURE);
-            }
-            
+
+            spectator.setGameMode(GameMode.ADVENTURE);
+
             restoreSpectatorProperties(spectator);
-            
-            spectator.sendMessage(ChatColor.YELLOW + "Stopped spectating" + 
+
+            spectator.sendMessage("§eStopped spectating" + 
                 (target != null ? " " + target.getName() : ""));
         }
     }
@@ -253,66 +271,49 @@ public class SpectatorManager {
     }
     
     private void giveSpectatorItems(Player player) {
+        player.getInventory().clear();
+
         ItemStack compass = new ItemStack(Material.COMPASS);
         ItemMeta compassMeta = compass.getItemMeta();
-        if (compassMeta != null) {
-            compassMeta.setDisplayName(ChatColor.GOLD + "Spectator Compass");
-            compassMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Right-click to open player selector",
-                ChatColor.GRAY + "Select a player to spectate",
-                ChatColor.DARK_GRAY + "Locked item - cannot be placed"
-            ));
-            compassMeta.setUnbreakable(true);
-            compassMeta.setCustomModelData(1000);
-            compass.setItemMeta(compassMeta);
-        }
-        
-        ItemStack leaveItem = new ItemStack(Material.RED_BED);
-        ItemMeta leaveMeta = leaveItem.getItemMeta();
-        if (leaveMeta != null) {
-            leaveMeta.setDisplayName(ChatColor.RED + "Leave Spectator Mode");
-            leaveMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Right-click to leave spectator mode",
-                ChatColor.GRAY + "You will be teleported to lobby",
-                ChatColor.DARK_GRAY + "Locked item - cannot be placed"
-            ));
-            leaveMeta.setUnbreakable(true);
-            leaveMeta.setCustomModelData(1001);
-            leaveItem.setItemMeta(leaveMeta);
-        }
-        
-        ItemStack visibilityItem = new ItemStack(Material.ENDER_EYE);
-        ItemMeta visibilityMeta = visibilityItem.getItemMeta();
-        if (visibilityMeta != null) {
-            visibilityMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Toggle Spectator Visibility");
-            visibilityMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Right-click to show/hide other spectators",
-                ChatColor.GRAY + "Current: " + ChatColor.GREEN + "Visible",
-                ChatColor.DARK_GRAY + "Locked item - cannot be placed"
-            ));
-            visibilityMeta.setUnbreakable(true);
-            visibilityMeta.setCustomModelData(1002);
-            visibilityItem.setItemMeta(visibilityMeta);
-        }
-        
-        ItemStack chatItem = new ItemStack(Material.PAPER);
-        ItemMeta chatMeta = chatItem.getItemMeta();
-        if (chatMeta != null) {
-            chatMeta.setDisplayName(ChatColor.AQUA + "Toggle Spectator Chat");
-            chatMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Right-click to enable/disable spectator chat",
-                ChatColor.GRAY + "Current: " + ChatColor.GREEN + "Enabled",
-                ChatColor.DARK_GRAY + "Locked item - cannot be placed"
-            ));
-            chatMeta.setUnbreakable(true);
-            chatMeta.setCustomModelData(1003);
-            chatItem.setItemMeta(chatMeta);
-        }
-        
+        compassMeta.setDisplayName("§6Spectator Compass");
+        compassMeta.setLore(Arrays.asList(
+            "§7Right-click to select players to spectate",
+            "§8Locked item"
+        ));
+        compass.setItemMeta(compassMeta);
         player.getInventory().setItem(0, compass);
-        player.getInventory().setItem(2, visibilityItem);
-        player.getInventory().setItem(4, chatItem);
-        player.getInventory().setItem(8, leaveItem);
+
+        ItemStack eye = new ItemStack(Material.ENDER_EYE);
+        ItemMeta eyeMeta = eye.getItemMeta();
+        eyeMeta.setDisplayName("§dToggle Spectator Visibility");
+        eyeMeta.setLore(Arrays.asList(
+            "§7Right-click to show/hide other spectators",
+            "§7Current: §aVisible",
+            "§8Locked item"
+        ));
+        eye.setItemMeta(eyeMeta);
+        player.getInventory().setItem(2, eye);
+
+        ItemStack paper = new ItemStack(Material.PAPER);
+        ItemMeta paperMeta = paper.getItemMeta();
+        paperMeta.setDisplayName("§bToggle Spectator Chat");
+        paperMeta.setLore(Arrays.asList(
+            "§7Right-click to enable/disable spectator chat",
+            "§7Current: §aEnabled",
+            "§8Locked item"
+        ));
+        paper.setItemMeta(paperMeta);
+        player.getInventory().setItem(4, paper);
+
+        ItemStack bed = new ItemStack(Material.RED_BED);
+        ItemMeta bedMeta = bed.getItemMeta();
+        bedMeta.setDisplayName("§cLeave Spectator Mode");
+        bedMeta.setLore(Arrays.asList(
+            "§7Right-click to leave spectator mode",
+            "§8Locked item"
+        ));
+        bed.setItemMeta(bedMeta);
+        player.getInventory().setItem(8, bed);
     }
     
     public void toggleSpectatorVisibility(Player player) {
@@ -322,15 +323,20 @@ public class SpectatorManager {
         
         spectatorVisibilityPrefs.put(playerId, newValue);
         
+        updateVisibilityItem(player, newValue);
+        
+        if (visibilityManager != null) {
+            visibilityManager.updateAllVisibility();
+        }
+        
         if (newValue) {
             player.sendMessage(ChatColor.GREEN + "Now showing other spectators");
         } else {
             player.sendMessage(ChatColor.YELLOW + "Now hiding other spectators");
         }
         
-        visibilityManager.updateAllVisibility();
-        
-        updateVisibilityItem(player, newValue);
+        int spectatorCount = getSpectators().size();
+        player.sendMessage(ChatColor.GRAY + "There are " + spectatorCount + " spectators online");
     }
 
     private void updateVisibilityItem(Player player, boolean isVisible) {
@@ -347,12 +353,14 @@ public class SpectatorManager {
                     lore.add(ChatColor.DARK_GRAY + "Locked item - cannot be placed");
                     meta.setLore(lore);
                     item.setItemMeta(meta);
+                    
+                    player.getInventory().setItem(i, item);
                     break;
                 }
             }
         }
     }
-    
+
     public void toggleSpectatorChat(Player player) {
         UUID playerId = player.getUniqueId();
         boolean current = spectatorChatPrefs.getOrDefault(playerId, true);
@@ -360,13 +368,36 @@ public class SpectatorManager {
         
         spectatorChatPrefs.put(playerId, newValue);
         
+        updateChatItem(player, newValue);
+        
         if (newValue) {
             player.sendMessage(ChatColor.GREEN + "Spectator chat enabled");
         } else {
             player.sendMessage(ChatColor.YELLOW + "Spectator chat disabled");
         }
     }
-    
+    private void updateChatItem(Player player, boolean isEnabled) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item != null && item.getType() == Material.PAPER && item.hasItemMeta()) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta.getDisplayName().contains("Toggle Spectator Chat")) {
+                    List<String> lore = new ArrayList<>();
+                    lore.add(ChatColor.GRAY + "Right-click to enable/disable spectator chat");
+                    lore.add(ChatColor.GRAY + "Current: " + 
+                        (isEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
+                    lore.add(ChatColor.DARK_GRAY + "Locked item - cannot be placed");
+                    meta.setLore(lore);
+                    item.setItemMeta(meta);
+                    
+                    player.getInventory().setItem(i, item);
+                    break;
+                }
+            }
+        }
+    }
+        
     public boolean canSeeSpectatorChat(Player player) {
         return spectatorChatPrefs.getOrDefault(player.getUniqueId(), true);
     }
@@ -496,8 +527,8 @@ public class SpectatorManager {
         return targetId != null ? Bukkit.getPlayer(targetId) : null;
     }
     
-    public PlayerSelectorGUI getPlayerSelectorGUI() {
-        return new PlayerSelectorGUI(plugin);
+    public SpectatorCompassGUI getSpectatorCompassGUI() {
+        return new SpectatorCompassGUI(plugin);
     }
     
     public SpectatorPlusPlus getPlugin() {

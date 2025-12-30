@@ -4,10 +4,14 @@ import com.spygamingog.spectatorplusplus.commands.CommandManager;
 import com.spygamingog.spectatorplusplus.data.ConfigManager;
 import com.spygamingog.spectatorplusplus.data.WorldSetManager;
 import com.spygamingog.spectatorplusplus.listeners.*;
-import com.spygamingog.spectatorplusplus.tasks.SpectatorInventorySync;
 import com.spygamingog.spectatorplusplus.utils.SpectatorManager;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 
 public class SpectatorPlusPlus extends JavaPlugin {
     private static SpectatorPlusPlus instance;
@@ -29,7 +33,6 @@ public class SpectatorPlusPlus extends JavaPlugin {
         commandManager = new CommandManager(this);
         commandManager.registerCommands();
         registerListeners();
-        new SpectatorInventorySync(this).runTaskTimer(this, 0L, 2L);
         
         getLogger().info("Spectator++ v" + getDescription().getVersion() + " has been enabled!");
         getLogger().info("Plugin by " + getDescription().getAuthors().toString());
@@ -38,7 +41,7 @@ public class SpectatorPlusPlus extends JavaPlugin {
 
     private void printBanner() {
         getLogger().info("╔══════════════════════════════════════╗");
-        getLogger().info("║      SpectatorPlusPlus v1.0.1        ║");
+        getLogger().info("║      SpectatorPlusPlus v1.0.2        ║");
         getLogger().info("║    Advanced Spectator System         ║");
         getLogger().info("║      by SpyGamingOG                  ║");
         getLogger().info("╚══════════════════════════════════════╝");
@@ -57,16 +60,11 @@ public class SpectatorPlusPlus extends JavaPlugin {
     
     private void registerListeners() {
         Bukkit.getPluginManager().registerEvents(new PlayerListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new InventoryListener(this), this);
         Bukkit.getPluginManager().registerEvents(new ChatListener(this), this);
         Bukkit.getPluginManager().registerEvents(new WorldListener(this), this);
         Bukkit.getPluginManager().registerEvents(new EntityListener(this), this);
         Bukkit.getPluginManager().registerEvents(new AdvancementListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new ItemLockListener(this), this);
         Bukkit.getPluginManager().registerEvents(new FlightListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new SpectatorItemListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new CustomItemListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new BlockPlacePreventionListener(this), this); // NEW
     }
     
     public static SpectatorPlusPlus getInstance() {

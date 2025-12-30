@@ -1,9 +1,10 @@
 name: SpectatorPlusPlus
-version: 1.0.1
+version: 1.0.2
 main: com.spygamingog.spectatorplusplus.SpectatorPlusPlus
 api-version: '1.21'
 description: Advanced spectator mode plugin for Minecraft servers
 author: SpyGamingOG
+website: https://github.com/SpyGamingOG/SpectatorPlusPlus
 
 commands:
   spectate:

@@ -11,6 +11,7 @@ import org.bukkit.scoreboard.Team;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class VisibilityManager {
     private final SpectatorManager spectatorManager;
@@ -18,6 +19,7 @@ public class VisibilityManager {
     private final WorldSetManager worldSetManager;
     private final Scoreboard scoreboard;
     private final Map<String, Team> teams;
+    private final Map<UUID, Boolean> spectatorVisibilityPrefs;
     
     private static final String TEAM_SPECTATOR = "spp_spectator";
     private static final String TEAM_HIDDEN = "spp_hidden";
@@ -29,6 +31,7 @@ public class VisibilityManager {
         this.worldSetManager = plugin.getWorldSetManager();
         this.scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         this.teams = new HashMap<>();
+        this.spectatorVisibilityPrefs = new HashMap<>();
         
         initializeTeams();
     }
@@ -42,6 +45,8 @@ public class VisibilityManager {
         spectatorTeam.setColor(ChatColor.GRAY);
         spectatorTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.FOR_OTHER_TEAMS);
         spectatorTeam.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
+        spectatorTeam.setOption(Team.Option.DEATH_MESSAGE_VISIBILITY, Team.OptionStatus.FOR_OTHER_TEAMS);
+        teams.put(TEAM_SPECTATOR, spectatorTeam);
         
         Team hiddenTeam = scoreboard.getTeam(TEAM_HIDDEN);
         if (hiddenTeam == null) {
@@ -58,11 +63,9 @@ public class VisibilityManager {
         visibleTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
         teams.put(TEAM_VISIBLE, visibleTeam);
     }
-    
+
     public void updatePlayerVisibility(Player player) {
-        if (spectatorManager == null) {
-            return;
-        }
+        if (spectatorManager == null || player == null) return;
         
         for (Player other : Bukkit.getOnlinePlayers()) {
             if (other.equals(player)) continue;
@@ -75,36 +78,13 @@ public class VisibilityManager {
                 spectatorTeam.addEntry(player.getName());
             }
             
-            for (Player other : Bukkit.getOnlinePlayers()) {
-                if (other.equals(player)) continue;
-                
-                boolean showSpectators = spectatorManager.canSeeSpectatorChat(other);
-                
-                if (spectatorManager.isSpectator(other)) {
-                    if (showSpectators) {
-                        player.showPlayer(plugin, other);
-                    } else {
-                        player.hidePlayer(plugin, other);
-                    }
-                } else {
-                    player.showPlayer(plugin, other);
-                }
-            }
+            boolean showSpectators = spectatorVisibilityPrefs.getOrDefault(player.getUniqueId(), true);
             
-            for (Player other : Bukkit.getOnlinePlayers()) {
-                if (other.equals(player)) continue;
-                
-                if (spectatorManager.isSpectator(other)) {
-                    if (spectatorManager.canSeeSpectatorChat(other)) {
-                        other.showPlayer(plugin, player);
-                    } else {
-                        other.hidePlayer(plugin, player);
-                    }
-                } else {
-                    if (other.hasPermission("spectatorplusplus.admin")) {
-                        other.showPlayer(plugin, player);
-                    } else {
-                        other.hidePlayer(plugin, player);
+            if (!showSpectators) {
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (other.equals(player)) continue;
+                    if (spectatorManager.isSpectator(other)) {
+                        player.hidePlayer(plugin, other);
                     }
                 }
             }
@@ -117,28 +97,22 @@ public class VisibilityManager {
             
             for (Player other : Bukkit.getOnlinePlayers()) {
                 if (other.equals(player)) continue;
-                
-                if (spectatorManager.isSpectator(other)) {
-                    if (player.hasPermission("spectatorplusplus.admin")) {
-                        player.showPlayer(plugin, other);
-                    } else {
-                        player.hidePlayer(plugin, other);
-                    }
-                } else {
-                    player.showPlayer(plugin, other);
+                if (spectatorManager.isSpectator(other) && !player.hasPermission("spectatorplusplus.admin")) {
+                    player.hidePlayer(plugin, other);
                 }
-            }
-            
-            for (Player other : Bukkit.getOnlinePlayers()) {
-                if (other.equals(player)) continue;
-                other.showPlayer(plugin, player);
             }
         }
     }
     
     public void updateAllVisibility() {
+        
         for (Player player : Bukkit.getOnlinePlayers()) {
             updatePlayerVisibility(player);
+        }
+        
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            updateTablistForWorldSet(player);
+            updateNameTagVisibility(player);
         }
     }
     
