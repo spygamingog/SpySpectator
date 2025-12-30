@@ -1,0 +1,31 @@
+name: SpectatorPlusPlus
+version: 1.0.2
+main: com.spygamingog.spectatorplusplus.SpectatorPlusPlus
+api-version: '1.21'
+description: Advanced spectator mode plugin for Minecraft servers
+author: SpyGamingOG
+website: https://github.com/SpyGamingOG/SpectatorPlusPlus
+
+commands:
+  spectate:
+    description: Toggle spectator mode or spectate a player
+    usage: /spectate [player]
+    permission: spectatorplusplus.use
+  spectator:
+    description: Admin commands for spectator management
+    usage: /spectator <leave|switch|reload|lobby>
+    permission: spectatorplusplus.admin
+
+permissions:
+  spectatorplusplus.use:
+    description: Allows using spectator mode
+    default: op
+  spectatorplusplus.spectate.others:
+    description: Allows spectating other players
+    default: op
+  spectatorplusplus.admin:
+    description: Allows using spectator admin commands
+    default: op
+  spectatorplusplus.admin.switch:
+    description: Allows switching players into/out of spectator mode
+    default: op
