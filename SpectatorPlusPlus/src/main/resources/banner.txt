@@ -1,5 +1,0 @@
-╔══════════════════════════════════════╗
-║      SpectatorPlusPlus v1.0.3        ║
-║    Advanced Spectator System         ║
-║      by SpyGamingOG                  ║
-╚══════════════════════════════════════╝
