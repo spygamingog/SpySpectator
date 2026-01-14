@@ -1,4 +1,4 @@
-# SpectatorPlusPlus
+# SpySpectator
 
 <p align="center">
   <img src="https://img.shields.io/badge/Minecraft-1.21+-blue" alt="Minecraft Version">
@@ -6,11 +6,11 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/Version-1.0.1-brightgreen" alt="Version">
   <img src="https://img.shields.io/github/issues/SpyGamingOG/SpectatorPlusPlus" alt="GitHub Issues">
-  <a href="https://modrinth.com/plugin/spectator-plus-plus">
-    <img src="https://img.shields.io/modrinth/v/spectator-plus-plus?label=Modrinth&logo=modrinth&color=00AF5C" alt="Modrinth Version">
+  <a href="https://modrinth.com/plugin/spyspectator">
+    <img src="https://img.shields.io/modrinth/v/spyspectator?label=Modrinth&logo=modrinth&color=00AF5C" alt="Modrinth Version">
   </a>
-  <a href="https://modrinth.com/plugin/spectator-plus-plus">
-    <img src="https://img.shields.io/modrinth/dt/spectator-plus-plus?label=Downloads&logo=modrinth&color=00AF5C" alt="Modrinth Downloads">
+  <a href="https://modrinth.com/plugin/spyspectator">
+    <img src="https://img.shields.io/modrinth/dt/spyspectator?label=Downloads&logo=modrinth&color=00AF5C" alt="Modrinth Downloads">
   </a>
 </p>
 
@@ -55,7 +55,7 @@
 ## 🚀 Quick Start
 
 ### 1. Installation
-1. **Download** from [Modrinth](https://modrinth.com/plugin/spectator-plus-plus)
+1. **Download** from [Modrinth](https://modrinth.com/plugin/spyspectator)
 2. **Place** the `.jar` file in your server's `plugins/` folder
 3. **Restart** your server
 
@@ -76,12 +76,12 @@
 ## 📚 Documentation
 
 ### Wiki Pages
-- 📖 [Installation Guide](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/Installation) - Complete installation instructions
-- ⚙️ [Configuration Guide](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/Configuration) - All config options explained
-- 🎮 [Usage Guide](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/Usage) - How to use all features
-- 🔧 [Commands & Permissions](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/Commands-&-Permissions) - Complete command reference
-- 🌍 [World Sets Guide](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/World-Sets) - Automatic world detection
-- 🛠️ [Troubleshooting Guide](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki/Troubleshooting) - Fix common issues
+- 📖 [Installation Guide](https://github.com/SpyGamingOG/SpySpectator/wiki/Installation) - Complete installation instructions
+- ⚙️ [Configuration Guide](https://github.com/SpyGamingOG/SpySpectator/wiki/Configuration) - All config options explained
+- 🎮 [Usage Guide](https://github.com/SpyGamingOG/SpySpectator/wiki/Usage) - How to use all features
+- 🔧 [Commands & Permissions](https://github.com/SpyGamingOG/SpySpectator/wiki/Commands-&-Permissions) - Complete command reference
+- 🌍 [World Sets Guide](https://github.com/SpyGamingOG/SpySpectator/wiki/World-Sets) - Automatic world detection
+- 🛠️ [Troubleshooting Guide](https://github.com/SpyGamingOG/SpySpectator/wiki/Troubleshooting) - Fix common issues
 
 ### Requirements
 - **Server**: Paper or Spigot 1.21+
@@ -98,11 +98,11 @@
 ---
 
 ## 🔗 Quick Links
-- [🐛 Report Issues](https://github.com/SpyGamingOG/SpectatorPlusPlus/issues)
-- [💡 Feature Requests](https://github.com/SpyGamingOG/SpectatorPlusPlus/issues)
-- [📦 Modrinth Page](https://modrinth.com/plugin/spectator-plus-plus)
-- [🗣️ Discussions](https://github.com/SpyGamingOG/SpectatorPlusPlus/discussions)
-- [📖 Full Documentation](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki)
+- [🐛 Report Issues](https://github.com/SpyGamingOG/SpySpectator/issues)
+- [💡 Feature Requests](https://github.com/SpyGamingOG/SpySpectator/issues)
+- [📦 Modrinth Page](https://modrinth.com/plugin/spyspectator)
+- [🗣️ Discussions](https://github.com/SpyGamingOG/SpySpectator/discussions)
+- [📖 Full Documentation](https://github.com/SpyGamingOG/SpySpectator/wiki)
 
 ---
 
@@ -115,8 +115,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Support & Community
 
 ### Need Help?
-1. **Check the [Wiki](https://github.com/SpyGamingOG/SpectatorPlusPlus/wiki)** for detailed guides
-2. **Search [Issues](https://github.com/SpyGamingOG/SpectatorPlusPlus/issues)** for similar problems
+1. **Check the [Wiki](https://github.com/SpyGamingOG/SpySpectator/wiki)** for detailed guides
+2. **Search [Issues](https://github.com/SpyGamingOG/SpySpectator/issues)** for similar problems
 3. **Create a new issue** if you found a bug
 4. **Join discussions** for questions and suggestions
 
@@ -134,13 +134,13 @@ For Minecraft 1.21+ Servers • Star this repo if you find it useful! ⭐
 </p>
 
 <p align="center">
-<a href="https://github.com/SpyGamingOG/SpectatorPlusPlus/stargazers">
- <img src="https://img.shields.io/github/stars/SpyGamingOG/SpectatorPlusPlus?style=for-the-badge&logo=github&color=yellow" alt="GitHub stars">
+<a href="https://github.com/SpyGamingOG/SpySpectator/stargazers">
+ <img src="https://img.shields.io/github/stars/SpyGamingOG/SpySpectator?style=for-the-badge&logo=github&color=yellow" alt="GitHub stars">
 </a>
 <a href="https://github.com/SpyGamingOG/SpectatorPlusPlus/network/members">
  <img src="https://img.shields.io/github/forks/SpyGamingOG/SpectatorPlusPlus?style=for-the-badge&logo=github&color=blue" alt="GitHub forks">
 </a>
-<a href="https://github.com/SpyGamingOG/SpectatorPlusPlus/watchers">
- <img src="https://img.shields.io/github/watchers/SpyGamingOG/SpectatorPlusPlus?style=for-the-badge&logo=github&color=green" alt="GitHub watchers">
+<a href="https://github.com/SpyGamingOG/SpySpectator/watchers">
+ <img src="https://img.shields.io/github/watchers/SpyGamingOG/SpySpectator?style=for-the-badge&logo=github&color=green" alt="GitHub watchers">
 </a>
 </p>
