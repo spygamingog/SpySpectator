@@ -1,0 +1,32 @@
+name: SpySpectator
+version: 2.0.1
+main: com.spygamingog.spyspectator.SpySpectator
+api-version: '1.21'
+description: Advanced spectator mode plugin for Minecraft servers
+author: SpyGamingOG
+website: https://github.com/SpyGamingOG/SpySpectator
+depend: [SpyCore, SpyInventories]
+
+commands:
+  spectate:
+    description: Toggle spectator mode or spectate a player
+    usage: /spectate [player]
+    permission: spyspectator.use
+  spectator:
+    description: Admin commands for spectator management
+    usage: /spectator <leave|switch|reload|lobby>
+    permission: spyspectator.admin
+
+permissions:
+  spyspectator.use:
+    description: Allows using spectator mode
+    default: op
+  spyspectator.spectate.others:
+    description: Allows spectating other players
+    default: op
+  spyspectator.admin:
+    description: Allows using spectator admin commands
+    default: op
+  spyspectator.admin.switch:
+    description: Allows switching players into/out of spectator mode
+    default: op
