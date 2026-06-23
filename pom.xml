@@ -7,7 +7,7 @@
     
     <groupId>com.spygamingog</groupId>
     <artifactId>SpySpectator</artifactId>
-    <version>2.0.1</version>
+    <version>3.0.0</version>
     <packaging>jar</packaging>
     
     <name>SpySpectator</name>

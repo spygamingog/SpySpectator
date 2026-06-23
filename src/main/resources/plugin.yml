@@ -1,5 +1,5 @@
 name: SpySpectator
-version: 2.0.1
+version: 3.0.0
 main: com.spygamingog.spyspectator.SpySpectator
 api-version: '1.21'
 description: Advanced spectator mode plugin for Minecraft servers

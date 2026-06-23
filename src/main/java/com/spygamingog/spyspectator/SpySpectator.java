@@ -14,18 +14,18 @@ public class SpySpectator extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        
+
         // Initialize Manager
         this.spectatorManager = new SpectatorManager(this);
-        
+
         // Register Commands
         getCommand("spectator").setExecutor(new SpectatorCommand(this));
         getCommand("spectator").setTabCompleter(new SpectatorTabCompleter());
-        
+
         // Register Listeners
         getServer().getPluginManager().registerEvents(new SpectatorListener(this), this);
-        
-        getLogger().info("SpySpectator 2.0.0 enabled!");
+
+        getLogger().info("SpySpectator 3.0.0 enabled!");
     }
 
     @Override

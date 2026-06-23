@@ -57,6 +57,12 @@ public class SpectatorManager {
     public void enableSpectator(Player player, boolean isJoin) {
         if (!isJoin && spectators.contains(player.getUniqueId())) return;
 
+        if (!isJoin) {
+            com.spygamingog.spyspectator.api.events.PlayerSpectateEvent event = new com.spygamingog.spyspectator.api.events.PlayerSpectateEvent(player);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) return;
+        }
+
         // Save return location only if not joining (if joining, we use persisted one)
         if (!isJoin) {
             returnLocations.put(player.getUniqueId(), player.getLocation());
@@ -114,6 +120,10 @@ public class SpectatorManager {
 
     public void disableSpectator(Player player, boolean toLobby, boolean resetGameMode) {
         if (!spectators.contains(player.getUniqueId())) return;
+
+        com.spygamingog.spyspectator.api.events.PlayerUnspectateEvent event = new com.spygamingog.spyspectator.api.events.PlayerUnspectateEvent(player);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
 
         spectators.remove(player.getUniqueId());
         player.removeMetadata("spyspectator", plugin);
@@ -214,6 +224,10 @@ public class SpectatorManager {
 
     public boolean isSpectator(Player player) {
         return spectators.contains(player.getUniqueId());
+    }
+
+    public Set<UUID> getSpectatorUUIDs() {
+        return Collections.unmodifiableSet(spectators);
     }
 
     public void setLobby(Location loc) {
