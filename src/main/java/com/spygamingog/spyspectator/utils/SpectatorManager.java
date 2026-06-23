@@ -29,15 +29,15 @@ public class SpectatorManager {
 
     private final SpySpectator plugin;
     private final Set<UUID> spectators = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Location> returnLocations = new HashMap<>();
-    private final Map<UUID, ItemStack[]> savedInventories = new HashMap<>();
-    private final Map<UUID, ItemStack[]> savedArmor = new HashMap<>();
+    private final Map<UUID, Location> returnLocations = new ConcurrentHashMap<>();
+    private final Map<UUID, ItemStack[]> savedInventories = new ConcurrentHashMap<>();
+    private final Map<UUID, ItemStack[]> savedArmor = new ConcurrentHashMap<>();
     
     // Preferences
     private final Set<UUID> chatDisabled = ConcurrentHashMap.newKeySet();
     private final Set<UUID> visibilityDisabled = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Set<UUID>> ignoredChatPlayers = new HashMap<>();
-    private final Map<UUID, Set<UUID>> hiddenSpectators = new HashMap<>();
+    private final Map<UUID, Set<UUID>> ignoredChatPlayers = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<UUID>> hiddenSpectators = new ConcurrentHashMap<>();
 
     private Location lobbyLocation;
     private final File dataFile;
@@ -324,7 +324,7 @@ public class SpectatorManager {
     }
     
     public void toggleIgnore(Player viewer, UUID target) {
-        Set<UUID> ignored = ignoredChatPlayers.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+        Set<UUID> ignored = ignoredChatPlayers.computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet());
         if (ignored.contains(target)) {
             ignored.remove(target);
             viewer.sendMessage("§aUnignored player chat.");
@@ -339,7 +339,7 @@ public class SpectatorManager {
     }
     
     public void toggleHide(Player viewer, UUID target) {
-        Set<UUID> hidden = hiddenSpectators.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+        Set<UUID> hidden = hiddenSpectators.computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet());
         if (hidden.contains(target)) {
             hidden.remove(target);
             viewer.sendMessage("§aPlayer is now visible.");
@@ -355,7 +355,7 @@ public class SpectatorManager {
         // Do not disable spectators on cleanup/disable, just save state.
     }
 
-    public void saveSpectators() {
+    public synchronized void saveSpectators() {
         dataConfig = new YamlConfiguration();
         List<String> uuidList = new ArrayList<>();
         for (UUID uuid : spectators) {
@@ -403,7 +403,7 @@ public class SpectatorManager {
         }
     }
 
-    public void loadSpectators() {
+    public synchronized void loadSpectators() {
         if (!dataFile.exists()) return;
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         List<String> uuidList = dataConfig.getStringList("spectators");

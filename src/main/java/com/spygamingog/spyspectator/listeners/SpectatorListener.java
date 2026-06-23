@@ -80,7 +80,7 @@ public class SpectatorListener implements Listener {
         if (getManager().isSpectator(player)) {
             // Re-apply spectator mode (items, flight, gamemode)
             // Use delay to ensure world change is fully processed and override other plugins (e.g. SpyCore, SpyHunts)
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            com.spygamingog.spyspectator.utils.SchedulerUtils.runLater(plugin, player, () -> {
                 if (player.isOnline() && getManager().isSpectator(player)) {
                     getManager().enableSpectator(player, true);
                     getManager().updateVisibility(player);
