@@ -3,12 +3,15 @@ package com.spygamingog.spyspectator.gui;
 import com.spygamingog.spyspectator.SpySpectator;
 import com.spygamingog.spyspectator.utils.SpectatorManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,7 @@ import java.util.List;
 public class SpectatorSettingsGUI {
 
     private final SpySpectator plugin;
+    public static final NamespacedKey SETTING_UUID_KEY = new NamespacedKey("spyspectator", "setting_uuid");
 
     public SpectatorSettingsGUI(SpySpectator plugin) {
         this.plugin = plugin;
@@ -34,11 +38,13 @@ public class SpectatorSettingsGUI {
         boolean globalEnabled = type == SettingsType.CHAT ? manager.isChatEnabled(player) : manager.isVisibilityEnabled(player);
         ItemStack globalToggle = new ItemStack(globalEnabled ? Material.LIME_DYE : Material.GRAY_DYE);
         ItemMeta globalMeta = globalToggle.getItemMeta();
-        globalMeta.setDisplayName(type == SettingsType.CHAT ? "§aGlobal Chat: " + (globalEnabled ? "ON" : "OFF") : "§aGlobal Visibility: " + (globalEnabled ? "ON" : "OFF"));
-        List<String> globalLore = new ArrayList<>();
-        globalLore.add(type == SettingsType.CHAT ? "§7Click to toggle all spectator chat" : "§7Click to toggle seeing all spectators");
-        globalMeta.setLore(globalLore);
-        globalToggle.setItemMeta(globalMeta);
+        if (globalMeta != null) {
+            globalMeta.setDisplayName(type == SettingsType.CHAT ? "§aGlobal Chat: " + (globalEnabled ? "ON" : "OFF") : "§aGlobal Visibility: " + (globalEnabled ? "ON" : "OFF"));
+            List<String> globalLore = new ArrayList<>();
+            globalLore.add(type == SettingsType.CHAT ? "§7Click to toggle all spectator chat" : "§7Click to toggle seeing all spectators");
+            globalMeta.setLore(globalLore);
+            globalToggle.setItemMeta(globalMeta);
+        }
         gui.setItem(4, globalToggle);
 
         // List Spectators in same world
@@ -46,7 +52,7 @@ public class SpectatorSettingsGUI {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getUniqueId().equals(player.getUniqueId())) continue;
             if (!manager.isSpectator(p)) continue;
-            if (!p.getWorld().equals(player.getWorld())) continue; // Same world only
+            if (!p.getWorld().equals(player.getWorld())) continue;
 
             if (index >= 54) break;
 
@@ -54,25 +60,26 @@ public class SpectatorSettingsGUI {
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             if (meta != null) {
                 meta.setOwningPlayer(p);
-                
+                meta.getPersistentDataContainer().set(SETTING_UUID_KEY, PersistentDataType.STRING, p.getUniqueId().toString());
+
                 boolean isSpecificEnabled;
                 if (type == SettingsType.CHAT) {
                     isSpecificEnabled = !manager.isIgnored(player.getUniqueId(), p.getUniqueId());
                 } else {
                     isSpecificEnabled = !manager.isHidden(player.getUniqueId(), p.getUniqueId());
                 }
-                
+
                 String status = isSpecificEnabled ? "§aVISIBLE" : "§cHIDDEN";
                 if (type == SettingsType.CHAT) status = isSpecificEnabled ? "§aHEARD" : "§cIGNORED";
 
-                meta.setDisplayName("§e" + p.getName());
+                meta.setDisplayName(ChatColor.YELLOW + p.getName());
                 List<String> lore = new ArrayList<>();
                 lore.add("§7Status: " + status);
                 lore.add("§7Click to toggle");
                 meta.setLore(lore);
                 head.setItemMeta(meta);
             }
-            
+
             gui.setItem(index++, head);
         }
 

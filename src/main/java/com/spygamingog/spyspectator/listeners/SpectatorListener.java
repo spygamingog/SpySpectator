@@ -3,9 +3,14 @@ package com.spygamingog.spyspectator.listeners;
 import com.spygamingog.spyspectator.SpySpectator;
 import com.spygamingog.spyspectator.gui.SpectatorGUI;
 import com.spygamingog.spyspectator.gui.SpectatorSettingsGUI;
+import com.spygamingog.spyspectator.utils.SchedulerUtils;
 import com.spygamingog.spyspectator.utils.SpectatorManager;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,20 +24,25 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
-
-import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.Chunk;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.util.UUID;
 
 public class SpectatorListener implements Listener {
 
@@ -56,21 +66,22 @@ public class SpectatorListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         
-        // Restore spectator mode if they were in it
         if (getManager().isSpectator(player)) {
             getManager().enableSpectator(player, true);
-            event.setJoinMessage(null); // Silence join message
+            event.setJoinMessage(null);
         } else {
-            // Update visibility for new player (hide existing spectators from them)
             getManager().updateVisibility(player);
         }
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (getManager().isSpectator(event.getPlayer())) {
-            // Do not disable, just save state (handled by manager save)
-            event.setQuitMessage(null); // Silence quit message
+        Player player = event.getPlayer();
+        if (getManager().isSpectatingTarget(player)) {
+            getManager().stopSpectatingTarget(player);
+        }
+        if (getManager().isSpectator(player)) {
+            event.setQuitMessage(null);
         }
     }
 
@@ -78,9 +89,7 @@ public class SpectatorListener implements Listener {
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         if (getManager().isSpectator(player)) {
-            // Re-apply spectator mode (items, flight, gamemode)
-            // Use delay to ensure world change is fully processed and override other plugins (e.g. SpyCore, SpyHunts)
-            com.spygamingog.spyspectator.utils.SchedulerUtils.runLater(plugin, player, () -> {
+            SchedulerUtils.runLater(plugin, player, () -> {
                 if (player.isOnline() && getManager().isSpectator(player)) {
                     getManager().enableSpectator(player, true);
                     getManager().updateVisibility(player);
@@ -89,19 +98,26 @@ public class SpectatorListener implements Listener {
         }
     }
     
-    // --- Chunk Loading Prevention ---
+    // --- Chunk Loading Prevention (Non-blocking, fixes synchronous chunk loading lag) ---
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onMove(PlayerMoveEvent event) {
         if (getManager().isSpectator(event.getPlayer())) {
-            Chunk toChunk = event.getTo().getChunk();
-            Chunk fromChunk = event.getFrom().getChunk();
+            Location to = event.getTo();
+            Location from = event.getFrom();
+            if (to == null || to.getWorld() == null) return;
+
+            int toChunkX = to.getBlockX() >> 4;
+            int toChunkZ = to.getBlockZ() >> 4;
+            int fromChunkX = from.getBlockX() >> 4;
+            int fromChunkZ = from.getBlockZ() >> 4;
             
-            if (!toChunk.equals(fromChunk)) {
-                if (!toChunk.isLoaded()) {
+            if (toChunkX != fromChunkX || toChunkZ != fromChunkZ) {
+                // Check if chunk is loaded WITHOUT forcing chunk generation/loading
+                if (!to.getWorld().isChunkLoaded(toChunkX, toChunkZ)) {
                     event.setCancelled(true);
-                    // Bouncing back slightly to prevent getting stuck on edge
-                    event.setTo(event.getFrom()); 
+                    event.setTo(from);
+                    event.getPlayer().sendMessage(getManager().getMessage("cannot-load-chunk", "§cYou cannot fly into unloaded chunks!"));
                 }
             }
         }
@@ -110,9 +126,14 @@ public class SpectatorListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onTeleport(PlayerTeleportEvent event) {
         if (getManager().isSpectator(event.getPlayer())) {
-            if (!event.getTo().getChunk().isLoaded()) {
+            Location to = event.getTo();
+            if (to == null || to.getWorld() == null) return;
+
+            int toChunkX = to.getBlockX() >> 4;
+            int toChunkZ = to.getBlockZ() >> 4;
+            if (!to.getWorld().isChunkLoaded(toChunkX, toChunkZ)) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("§cYou cannot teleport to unloaded chunks in Spectator Mode.");
+                event.getPlayer().sendMessage(getManager().getMessage("cannot-load-chunk", "§cYou cannot fly into unloaded chunks!"));
             }
         }
     }
@@ -122,36 +143,21 @@ public class SpectatorListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onChat(AsyncPlayerChatEvent event) {
         if (getManager().isSpectator(event.getPlayer())) {
-            // Check if chat is enabled for sender
             if (!getManager().isChatEnabled(event.getPlayer())) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("§cYou have spectator chat disabled. Enable it to chat.");
+                event.getPlayer().sendMessage(getManager().getMessage("chat-disabled", "§cYou have spectator chat disabled. Enable it to chat."));
                 return;
             }
 
-            // Spectator chatting: Only visible to other spectators
-            // Filter recipients:
-            // 1. Must be Spectator
-            // 2. Must be in same World Group (Same World for now)
-            // 3. Must have Chat Enabled
-            // 4. Must NOT have ignored the sender
-            
             event.getRecipients().removeIf(recipient -> {
-                if (!getManager().isSpectator(recipient)) return true; // Remove non-spectators
-                if (!recipient.getWorld().equals(event.getPlayer().getWorld())) return true; // Remove different world
-                if (!getManager().isChatEnabled(recipient)) return true; // Remove disabled chat
-                if (getManager().isIgnored(recipient.getUniqueId(), event.getPlayer().getUniqueId())) return true; // Remove if ignored
+                if (!getManager().isSpectator(recipient)) return true;
+                if (!recipient.getWorld().equals(event.getPlayer().getWorld())) return true;
+                if (!getManager().isChatEnabled(recipient)) return true;
+                if (getManager().isIgnored(recipient.getUniqueId(), event.getPlayer().getUniqueId())) return true;
                 return false;
             });
             
             event.setFormat("§8[Spec] §7" + event.getPlayer().getName() + ": §f%2$s");
-        } else {
-            // Normal player chatting: Hidden from spectators? 
-            // Usually spectators CAN see normal chat. User said: "spectator's chat sin't supposed to be shown to non spectators"
-            // This implies: Spec -> Normal = BLOCKED.
-            // It does NOT explicitly say Normal -> Spec = BLOCKED.
-            // Standard behavior is Specs see everything.
-            // So we leave this part alone.
         }
     }
     
@@ -161,23 +167,53 @@ public class SpectatorListener implements Listener {
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
         Player player = event.getPlayer();
         if (getManager().isSpectator(player)) {
-            // If switching to something other than Adventure (our Spectator mode default),
-            // assume they want to leave spectator mode but keep the new gamemode.
-            // Note: Our spectator mode uses ADVENTURE. 
-            // If they switch TO Adventure, we ignore (might be re-applying).
-            // If they switch TO Spectator (Vanilla), we might want to allow it or treat as leave?
-            // "switch you from our spectator to that mode" implies leaving our system.
-            
+            // If in first person camera mode, let it stay
+            if (getManager().isSpectatingTarget(player) && event.getNewGameMode() == GameMode.SPECTATOR) {
+                return;
+            }
             if (event.getNewGameMode() != GameMode.ADVENTURE) {
-                // Disable spectator mode logic, but DO NOT reset gamemode (let the event happen)
-                // and DO NOT teleport back (assume they want to be where they are)
                 getManager().disableSpectator(player, false, false);
-                player.sendMessage("§eGameMode changed! You have left custom Spectator Mode.");
+                player.sendMessage(ChatColor.YELLOW + "GameMode changed! You have left custom Spectator Mode.");
             }
         }
     }
 
-    // --- Interactions & Protections ---
+    // --- First-Person Spectating Interactivity ---
+
+    @EventHandler
+    public void onRightClickEntity(PlayerInteractEntityEvent event) {
+        Player player = event.getPlayer();
+        if (getManager().isSpectator(player)) {
+            event.setCancelled(true);
+
+            if (event.getRightClicked() instanceof Player) {
+                Player target = (Player) event.getRightClicked();
+                if (plugin.getConfig().getBoolean("first-person-spectating.right-click-to-spectate", true)) {
+                    getManager().startSpectatingTarget(player, target);
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onSneak(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+        if (event.isSneaking() && getManager().isSpectatingTarget(player)) {
+            if (plugin.getConfig().getBoolean("first-person-spectating.stop-on-sneak", true)) {
+                getManager().stopSpectatingTarget(player);
+            }
+        }
+    }
+
+    // --- Offhand Swap & Interaction Protections ---
+
+    @EventHandler
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
+        if (getManager().isSpectator(event.getPlayer())) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(getManager().getMessage("item-locked", "§cThis item is locked and cannot be moved!"));
+        }
+    }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
@@ -192,19 +228,20 @@ public class SpectatorListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         if (getManager().isSpectator(event.getPlayer())) {
-            // Handle Spectator Items
             ItemStack item = event.getItem();
             Action action = event.getAction();
             boolean isRight = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
             boolean isLeft = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
 
             if (item != null && (isRight || isLeft)) {
-                if (item.getType() == Material.COMPASS && item.hasItemMeta() && item.getItemMeta().getDisplayName().contains("Teleporter")) {
+                // Compass Teleporter
+                if (item.getType() == Material.COMPASS) {
                     if (isRight) gui.openGUI(event.getPlayer());
                     event.setCancelled(true);
                     return;
                 }
-                if (item.getType() == Material.ENDER_EYE && item.hasItemMeta() && item.getItemMeta().getDisplayName().contains("Visibility")) {
+                // Visibility Settings
+                if (item.getType() == Material.ENDER_EYE) {
                     if (isRight) {
                         settingsGUI.openGUI(event.getPlayer(), SpectatorSettingsGUI.SettingsType.VISIBILITY);
                     } else if (isLeft) {
@@ -213,7 +250,8 @@ public class SpectatorListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
-                if (item.getType() == Material.PAPER && item.hasItemMeta() && item.getItemMeta().getDisplayName().contains("Chat")) {
+                // Chat Settings
+                if (item.getType() == Material.PAPER) {
                     if (isRight) {
                         settingsGUI.openGUI(event.getPlayer(), SpectatorSettingsGUI.SettingsType.CHAT);
                     } else if (isLeft) {
@@ -222,7 +260,8 @@ public class SpectatorListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
-                if (item.getType() == Material.RED_BED && item.hasItemMeta() && item.getItemMeta().getDisplayName().contains("Leave")) {
+                // Leave Item
+                if (item.getType() == Material.RED_BED) {
                     if (isRight) getManager().disableSpectator(event.getPlayer(), true);
                     event.setCancelled(true);
                     return;
@@ -242,60 +281,85 @@ public class SpectatorListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player) {
             Player player = (Player) event.getWhoClicked();
-            
-            // Handle GUI Clicks
             String title = event.getView().getTitle();
-            
-            if (title.equals("§8Spectator Teleporter")) {
-                event.setCancelled(true); // Prevent taking items
-                if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.PLAYER_HEAD) {
-                    if (event.getCurrentItem().hasItemMeta()) {
-                        String name = event.getCurrentItem().getItemMeta().getDisplayName().substring(2); // Remove color code
-                        Player target = plugin.getServer().getPlayer(name);
-                        if (target != null) {
-                            player.teleport(target);
-                            player.sendMessage("§aTeleported to " + target.getName());
-                            player.closeInventory();
-                        } else {
-                            player.sendMessage("§cPlayer not found.");
-                        }
+
+            // Handle Teleporter GUI
+            if (title.contains("Spectator Teleporter")) {
+                event.setCancelled(true);
+                ItemStack clicked = event.getCurrentItem();
+                if (clicked == null || !clicked.hasItemMeta()) return;
+
+                ItemMeta meta = clicked.getItemMeta();
+
+                // Check pagination navigation
+                if (meta.getPersistentDataContainer().has(SpectatorGUI.PAGE_KEY, PersistentDataType.INTEGER)) {
+                    Integer targetPage = meta.getPersistentDataContainer().get(SpectatorGUI.PAGE_KEY, PersistentDataType.INTEGER);
+                    if (targetPage != null) {
+                        gui.openGUI(player, targetPage);
+                        player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1f, 1f);
                     }
+                    return;
+                }
+
+                // Check target head click
+                if (meta.getPersistentDataContainer().has(SpectatorGUI.TARGET_UUID_KEY, PersistentDataType.STRING)) {
+                    String uuidStr = meta.getPersistentDataContainer().get(SpectatorGUI.TARGET_UUID_KEY, PersistentDataType.STRING);
+                    if (uuidStr != null) {
+                        try {
+                            UUID targetUUID = UUID.fromString(uuidStr);
+                            Player target = Bukkit.getPlayer(targetUUID);
+                            if (target != null && target.isOnline()) {
+                                player.teleportAsync(target.getLocation()).thenRun(() -> {
+                                    player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+                                    player.sendMessage(getManager().formatMessage("now-spectating", "&aTeleported to &e{player}&a.", target.getName()));
+                                });
+                                player.closeInventory();
+                            } else {
+                                player.sendMessage(getManager().getMessage("player-not-found", "§cPlayer not found."));
+                            }
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+                    return;
                 }
                 return;
             }
             
-            if (title.equals("§8Spectator Chat Settings") || title.equals("§8Spectator Visibility Settings")) {
+            // Handle Settings GUIs
+            if (title.contains("Spectator Chat Settings") || title.contains("Spectator Visibility Settings")) {
                 event.setCancelled(true);
                 ItemStack clicked = event.getCurrentItem();
                 if (clicked == null) return;
                 
                 boolean isChat = title.contains("Chat");
                 
-                // Global Toggle
+                // Global Toggle (Slot 4)
                 if (event.getSlot() == 4) {
                     if (isChat) getManager().toggleChat(player);
                     else getManager().toggleVisibility(player);
                     
-                    // Refresh GUI
                     settingsGUI.openGUI(player, isChat ? SpectatorSettingsGUI.SettingsType.CHAT : SpectatorSettingsGUI.SettingsType.VISIBILITY);
+                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
                     return;
                 }
                 
-                // Individual Toggle
-                if (clicked.getType() == Material.PLAYER_HEAD && clicked.hasItemMeta()) {
-                    String name = clicked.getItemMeta().getDisplayName().substring(2);
-                    Player target = plugin.getServer().getPlayer(name);
-                    if (target != null) {
-                        if (isChat) getManager().toggleIgnore(player, target.getUniqueId());
-                        else getManager().toggleHide(player, target.getUniqueId());
-                        
-                        // Refresh GUI
-                        settingsGUI.openGUI(player, isChat ? SpectatorSettingsGUI.SettingsType.CHAT : SpectatorSettingsGUI.SettingsType.VISIBILITY);
+                // Individual Player Toggle
+                if (clicked.hasItemMeta() && clicked.getItemMeta().getPersistentDataContainer().has(SpectatorSettingsGUI.SETTING_UUID_KEY, PersistentDataType.STRING)) {
+                    String uuidStr = clicked.getItemMeta().getPersistentDataContainer().get(SpectatorSettingsGUI.SETTING_UUID_KEY, PersistentDataType.STRING);
+                    if (uuidStr != null) {
+                        try {
+                            UUID targetId = UUID.fromString(uuidStr);
+                            if (isChat) getManager().toggleIgnore(player, targetId);
+                            else getManager().toggleHide(player, targetId);
+                            
+                            settingsGUI.openGUI(player, isChat ? SpectatorSettingsGUI.SettingsType.CHAT : SpectatorSettingsGUI.SettingsType.VISIBILITY);
+                            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                        } catch (IllegalArgumentException ignored) {}
                     }
                 }
                 return;
             }
             
+            // General spectator inventory cancellation
             if (getManager().isSpectator(player)) {
                 event.setCancelled(true);
             }
@@ -314,7 +378,7 @@ public class SpectatorListener implements Listener {
         }
     }
 
-    // --- Damage & Health ---
+    // --- Damage, Death & Health ---
 
     @EventHandler
     public void onDamage(EntityDamageEvent event) {
@@ -334,16 +398,22 @@ public class SpectatorListener implements Listener {
     public void onFoodChange(FoodLevelChangeEvent event) {
         if (event.getEntity() instanceof Player && getManager().isSpectator((Player) event.getEntity())) {
             event.setCancelled(true);
-            ((Player) event.getEntity()).setFoodLevel(20); // Force full food
+            ((Player) event.getEntity()).setFoodLevel(20);
         }
     }
-    
-    // --- Air/Water Breathing ---
     
     @EventHandler
     public void onAirChange(org.bukkit.event.entity.EntityAirChangeEvent event) {
         if (event.getEntity() instanceof Player && getManager().isSpectator((Player) event.getEntity())) {
-            event.setCancelled(true); // Prevent air loss
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        if (getManager().isSpectator(event.getEntity())) {
+            event.getDrops().clear();
+            event.setDeathMessage(null);
         }
     }
 

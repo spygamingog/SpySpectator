@@ -15,17 +15,30 @@ public class SpySpectator extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
+        // Ensure default config exists
+        saveDefaultConfig();
+
         // Initialize Manager
         this.spectatorManager = new SpectatorManager(this);
 
         // Register Commands
-        getCommand("spectator").setExecutor(new SpectatorCommand(this));
-        getCommand("spectator").setTabCompleter(new SpectatorTabCompleter());
+        SpectatorCommand executor = new SpectatorCommand(this);
+        SpectatorTabCompleter tabCompleter = new SpectatorTabCompleter();
+
+        if (getCommand("spectator") != null) {
+            getCommand("spectator").setExecutor(executor);
+            getCommand("spectator").setTabCompleter(tabCompleter);
+        }
+
+        if (getCommand("spectate") != null) {
+            getCommand("spectate").setExecutor(executor);
+            getCommand("spectate").setTabCompleter(tabCompleter);
+        }
 
         // Register Listeners
         getServer().getPluginManager().registerEvents(new SpectatorListener(this), this);
 
-        getLogger().info("SpySpectator 3.0.0 enabled!");
+        getLogger().info("SpySpectator 3.0.1 enabled successfully!");
     }
 
     @Override
