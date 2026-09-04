@@ -80,9 +80,7 @@ Listen to cancelable events `PlayerSpectateEvent` and `PlayerUnspectateEvent` to
 
 - 📚 **Full Documentation**: [DOCUMENTATION.md](DOCUMENTATION.md)
 - 🔌 **API Documentation**: [apidoc.md](apidoc.md)
-- 🧠 **Project Brain**: [project_brain.md](project_brain.md)
 - 📝 **Release Changelog**: [changelog.md](changelog.md)
-- 🔍 **Resolved Issues & Audit**: [ISSUES_AND_FLAWS.md](ISSUES_AND_FLAWS.md)
 
 ---
 
