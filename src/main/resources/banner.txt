@@ -1,5 +1,5 @@
 ╔══════════════════════════════════════╗
-║        SpySpectator v3.0.0          ║
+║        SpySpectator v3.0.1          ║
 ║    Advanced Spectator System         ║
 ║        by SpyGamingOG                ║
 ╚══════════════════════════════════════╝

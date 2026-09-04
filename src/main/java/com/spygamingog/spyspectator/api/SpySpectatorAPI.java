@@ -1,10 +1,13 @@
 package com.spygamingog.spyspectator.api;
 
 import com.spygamingog.spyspectator.SpySpectator;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
+
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.bukkit.Bukkit;
 
 public final class SpySpectatorAPI {
 
@@ -43,7 +46,6 @@ public final class SpySpectatorAPI {
         if (player == null) return;
         SpySpectator instance = SpySpectator.getInstance();
         if (instance == null || instance.getSpectatorManager() == null) return;
-        // toLobby=false, resetGameMode=true
         instance.getSpectatorManager().disableSpectator(player, false);
     }
 
@@ -75,13 +77,69 @@ public final class SpySpectatorAPI {
     }
 
     /**
+     * Starts first-person camera spectating on a target player.
+     * @param spectator The spectating player
+     * @param target The target player to spectate
+     * @return true if first-person spectating started, false otherwise
+     */
+    public static boolean startSpectatingTarget(Player spectator, Player target) {
+        if (spectator == null || target == null) return false;
+        SpySpectator instance = SpySpectator.getInstance();
+        if (instance == null || instance.getSpectatorManager() == null) return false;
+        return instance.getSpectatorManager().startSpectatingTarget(spectator, target);
+    }
+
+    /**
+     * Stops first-person camera spectating and returns the player to collision-free Adventure flight.
+     * @param spectator The spectating player
+     */
+    public static void stopSpectatingTarget(Player spectator) {
+        if (spectator == null) return;
+        SpySpectator instance = SpySpectator.getInstance();
+        if (instance == null || instance.getSpectatorManager() == null) return;
+        instance.getSpectatorManager().stopSpectatingTarget(spectator);
+    }
+
+    /**
+     * Checks if a spectator is currently attached to a target player in first-person camera mode.
+     * @param spectator The player to check
+     * @return true if currently spectating a target in first-person, false otherwise
+     */
+    public static boolean isSpectatingTarget(Player spectator) {
+        if (spectator == null) return false;
+        SpySpectator instance = SpySpectator.getInstance();
+        if (instance == null || instance.getSpectatorManager() == null) return false;
+        return instance.getSpectatorManager().isSpectatingTarget(spectator);
+    }
+
+    /**
+     * Returns the configured spectator exit lobby location.
+     * @return The lobby Location, or null if unset
+     */
+    public static Location getLobby() {
+        SpySpectator instance = SpySpectator.getInstance();
+        if (instance == null || instance.getSpectatorManager() == null) return null;
+        return instance.getSpectatorManager().getLobby();
+    }
+
+    /**
+     * Sets the configured spectator exit lobby location.
+     * @param loc The new lobby Location
+     */
+    public static void setLobby(Location loc) {
+        SpySpectator instance = SpySpectator.getInstance();
+        if (instance == null || instance.getSpectatorManager() == null) return;
+        instance.getSpectatorManager().setLobby(loc);
+    }
+
+    /**
      * Returns a set of all currently spectating players.
      * @return A set of players in spectator mode
      */
     public static Set<Player> getSpectators() {
         SpySpectator instance = SpySpectator.getInstance();
         if (instance == null || instance.getSpectatorManager() == null) {
-            return java.util.Collections.emptySet();
+            return Collections.emptySet();
         }
         return instance.getSpectatorManager().getSpectatorUUIDs().stream()
                 .map(Bukkit::getPlayer)

@@ -1,6 +1,6 @@
-# SpySpectator Developer API Documentation
+# SpySpectator Developer API Documentation (v3.0.1)
 
-Expose custom spectator features and interact with active spectators directly from your Minecraft server plugins.
+Expose custom spectator features, trigger first-person camera views, and interact with active spectators directly from your Minecraft server plugins.
 
 ---
 
@@ -12,7 +12,7 @@ Add `SpySpectator` to your `pom.xml` dependencies:
 <dependency>
     <groupId>com.spygamingog</groupId>
     <artifactId>SpySpectator</artifactId>
-    <version>3.0.0</version>
+    <version>3.0.1</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -21,7 +21,7 @@ Add `SpySpectator` to your `pom.xml` dependencies:
 Add the dependency to your `build.gradle`:
 ```groovy
 dependencies {
-    compileOnly 'com.spygamingog:SpySpectator:3.0.0'
+    compileOnly 'com.spygamingog:SpySpectator:3.0.1'
 }
 ```
 
@@ -29,15 +29,15 @@ dependencies {
 
 ## ⚙️ Declaring Plugin Dependency
 
-To make sure your plugin loads after `SpySpectator`, add it as a dependency or soft-dependency inside your `plugin.yml`:
+To make sure your plugin loads after `SpySpectator`, declare it in your `plugin.yml`:
 
 ```yaml
 name: MyGameModePlugin
 version: 1.0.0
 main: com.myname.myplugin.MyPlugin
-# Require SpySpectator to run:
+# Required dependency:
 depend: [SpySpectator]
-# OR Soft-depend (optional integration):
+# OR Optional soft-dependency:
 # softdepend: [SpySpectator]
 ```
 
@@ -45,28 +45,55 @@ depend: [SpySpectator]
 
 ## 🛠️ Exposing SpySpectator API
 
-Access spectator functions directly using static utility methods in the `SpySpectatorAPI` class:
+Access spectator functions directly using static utility methods in the [`SpySpectatorAPI`](file:///e:/Vaibhav/Projects/SpySpectator/src/main/java/com/spygamingog/spyspectator/api/SpySpectatorAPI.java) class:
+
+### 1. General Spectator Management
 
 ```java
 import com.spygamingog.spyspectator.api.SpySpectatorAPI;
 import org.bukkit.entity.Player;
 import java.util.Set;
 
-// 1. Check if a player is in spectator mode
-boolean spectating = SpySpectatorAPI.isSpectator(player);
+// Check if a player is in spectator mode
+boolean isSpectating = SpySpectatorAPI.isSpectator(player);
 
-// 2. Put a player into custom spectator mode
+// Put a player into custom spectator mode (Adventure flight + invisibility)
 SpySpectatorAPI.enableSpectator(player);
 
-// 3. Remove a player from spectator mode (and restore inventory/location)
+// Remove a player from spectator mode (restores inventory & returns to origin)
 SpySpectatorAPI.disableSpectator(player);
 
-// 4. Remove a player from spectator mode with advanced options
+// Remove a player with custom options:
 // disableSpectator(player, toLobby, resetGameMode)
 SpySpectatorAPI.disableSpectator(player, true, true);
 
-// 5. Get a set of all currently active spectating players
+// Get all active spectators on the server
 Set<Player> activeSpectators = SpySpectatorAPI.getSpectators();
+```
+
+### 2. First-Person Camera Spectating
+
+```java
+// Lock a spectator's camera into a target player's eyes (first-person view)
+boolean success = SpySpectatorAPI.startSpectatingTarget(spectatorPlayer, targetPlayer);
+
+// Detach from target and return to free-flight Adventure spectator mode
+SpySpectatorAPI.stopSpectatingTarget(spectatorPlayer);
+
+// Check if a spectator is currently attached in first-person mode
+boolean isAttached = SpySpectatorAPI.isSpectatingTarget(spectatorPlayer);
+```
+
+### 3. Spectator Lobby Management
+
+```java
+import org.bukkit.Location;
+
+// Get the configured server spectator exit lobby location (nullable)
+Location lobby = SpySpectatorAPI.getLobby();
+
+// Programmatically set the spectator exit lobby location
+SpySpectatorAPI.setLobby(newLocation);
 ```
 
 ---
@@ -83,7 +110,7 @@ import com.spygamingog.spyspectator.api.events.PlayerSpectateEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-public class MyGameListener implements Listener {
+public class CombatTagListener implements Listener {
 
     @EventHandler
     public void onPlayerSpectate(PlayerSpectateEvent event) {
@@ -104,15 +131,22 @@ import com.spygamingog.spyspectator.api.events.PlayerUnspectateEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-public class MyGameListener implements Listener {
+public class BattleRoyaleListener implements Listener {
 
     @EventHandler
     public void onPlayerUnspectate(PlayerUnspectateEvent event) {
-        // Force dead players in a Battle Royale to stay as spectators until the game ends
-        if (isGameRunning() && isEliminated(event.getPlayer())) {
+        // Force eliminated players to stay as spectators until the match ends
+        if (isMatchRunning() && isEliminated(event.getPlayer())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage("§cYou must remain a spectator until the match is finished!");
         }
     }
 }
 ```
+
+---
+
+## ⚡ Thread-Safety & Folia Compatibility
+
+- **Folia & Paper Asynchronous Safe**: `disableSpectator` uses asynchronous entity teleportation (`teleportAsync`), safe for regional multi-threading.
+- If invoking API methods across asynchronous tasks or Folia regions, ensure entity state operations are called on the player's corresponding region scheduler (`player.getScheduler()`).
